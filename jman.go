@@ -25,11 +25,19 @@ func Equal(t testing.TB, expected, actual any) {
 
 	differences := compare(expectedObj, actualObj)
 	if len(differences) > 0 {
-		t.Errorf("expected not equal to actual")
+		t.Errorf("expected not equal to actual: %s", differences.Report())
 	}
 }
 
 type Differences []Difference
+
+func (d Differences) Report() string {
+	var report string
+	for _, diff := range d {
+		report += fmt.Sprintf("%s.%s %s", diff.expectedOrActual, diff.path, diff.diff)
+	}
+	return report
+}
 
 func (d Differences) HasKey(key string) bool {
 	for _, d := range d {

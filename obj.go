@@ -7,23 +7,28 @@ import (
 
 type Obj map[string]any
 
-func New(givenJSON any) (Obj, error) {
+func NewObject(givenJSON any) (Obj, error) {
 	var o Obj
 	switch v := givenJSON.(type) {
 	case string:
 		data := givenJSON.(string)
-		err := json.Unmarshal([]byte(data), &o)
-		if err != nil {
+		if err := json.Unmarshal([]byte(data), &o); err != nil {
 			return nil, fmt.Errorf("error unmarshalling JSON string %s: %w", data, err)
 		}
 	case []byte:
 		data := givenJSON.([]byte)
-		err := json.Unmarshal(data, &o)
-		if err != nil {
+		if err := json.Unmarshal(data, &o); err != nil {
 			return nil, fmt.Errorf("error unmarshalling JSON byte string %s: %w", string(data), err)
 		}
 	case Obj:
-		return givenJSON.(Obj), nil
+		// to normalize the values, marshal and unmarshal the object
+		data, err := json.Marshal(givenJSON)
+		if err != nil {
+			return nil, fmt.Errorf("error building JSON object: marshaling %v: %w", givenJSON, err)
+		}
+		if err = json.Unmarshal(data, &o); err != nil {
+			return nil, fmt.Errorf("error unmarshalling JSON object %v: %w", givenJSON, err)
+		}
 	default:
 		return nil, fmt.Errorf("type %s not supported. use either string, []byte, or jman.Obj", v)
 	}
