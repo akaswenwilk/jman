@@ -5,20 +5,21 @@ import (
 	"time"
 
 	"github.com/akaswenwilk/jman"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEqual_Strings(t *testing.T) {
 	expected := `{"hello": "world", "foo": "bar", "baz": 123}`
 	actual := `{"foo": "bar", "hello": "world", "baz": 123}`
 
-	jman.Equal(t, expected, actual)
+	assert.NoError(t, jman.Equal(expected, actual))
 }
 
 func TestEqual_Bytes(t *testing.T) {
 	expected := `{"hello": "world", "foo": "bar", "baz": 123}`
 	actual := `{"foo": "bar", "hello": "world", "baz": 123}`
 
-	jman.Equal(t, []byte(expected), []byte(actual))
+	assert.NoError(t, jman.Equal([]byte(expected), []byte(actual)))
 }
 
 func TestEqual_Obj(t *testing.T) {
@@ -32,7 +33,7 @@ func TestEqual_Obj(t *testing.T) {
 		"hello": "world",
 		"baz":   123,
 	}
-	jman.Equal(t, expected, actual)
+	assert.NoError(t, jman.Equal(expected, actual))
 }
 
 func TestEqual_Mix(t *testing.T) {
@@ -43,7 +44,7 @@ func TestEqual_Mix(t *testing.T) {
 	}
 	actual := `{"foo": "bar", "hello": "world", "baz": 123}`
 
-	jman.Equal(t, expected, actual)
+	assert.NoError(t, jman.Equal(expected, actual))
 }
 
 func TestEqual_ObjTime(t *testing.T) {
@@ -55,7 +56,7 @@ func TestEqual_ObjTime(t *testing.T) {
 		"current_time": now,
 	}
 
-	jman.Equal(t, expected, actual)
+	assert.NoError(t, jman.Equal(expected, actual))
 }
 
 func TestEqual_NestedObj(t *testing.T) {}

@@ -3,30 +3,25 @@ package jman
 import (
 	"fmt"
 	"reflect"
-	"testing"
 )
 
-type TB interface {
-	Errorf(format string, args ...any)
-}
-
-func Equal(t testing.TB, expected, actual any) {
-	expectedObj, err := New(expected)
+func Equal(expected, actual any) error {
+	expectedObj, err := NewObject(expected)
 	if err != nil {
-		t.Errorf("invalid expected: %s", err.Error())
-		return
+		return fmt.Errorf("invalid expected: %s", err.Error())
 	}
 
-	actualObj, err := New(actual)
+	actualObj, err := NewObject(actual)
 	if err != nil {
-		t.Errorf("invalid actual: %s", err.Error())
-		return
+		return fmt.Errorf("invalid actual: %s", err.Error())
 	}
 
 	differences := compare(expectedObj, actualObj)
 	if len(differences) > 0 {
-		t.Errorf("expected not equal to actual: %s", differences.Report())
+		return fmt.Errorf("expected not equal to actual: %s", differences.Report())
 	}
+
+	return nil
 }
 
 type Differences []Difference
