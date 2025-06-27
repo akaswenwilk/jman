@@ -5,7 +5,13 @@ import (
 	"reflect"
 )
 
-func Equal(expected, actual any) error {
+func Equal(expected, actual any, optFuncs ...OptsFunc) error {
+	opts := EqualOptions{}
+
+	for _, o := range optFuncs {
+		o(&opts)
+	}
+
 	exp, err := New(expected)
 	if err != nil {
 		return fmt.Errorf("invalid expected: %w", err)
@@ -22,7 +28,7 @@ func Equal(expected, actual any) error {
 			return fmt.Errorf("expected a json array, got %T", act)
 		}
 
-		return handleArrays(expectedSlice, actualSlice)
+		return handleArrays(expectedSlice, actualSlice, opts)
 	}
 
 	if expectedObj, ok := NewObjFromAny(exp); ok {
@@ -30,14 +36,14 @@ func Equal(expected, actual any) error {
 		if !ok {
 			return fmt.Errorf("expected a json object, got %T", act)
 		}
-		return handleObjects(expectedObj, actualObj)
+		return handleObjects(expectedObj, actualObj, opts)
 	}
 
 	return fmt.Errorf("unexpected type for expected %+v.  Use a json object/array string/byte, or jman.Obj or jman.Arr", expected)
 }
 
-func handleObjects(expected, actual Obj) error {
-	differences := compareObjects(expected, actual)
+func handleObjects(expected, actual Obj, opts EqualOptions) error {
+	differences := compareObjects(expected, actual, opts)
 	if len(differences) > 0 {
 		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
@@ -45,8 +51,8 @@ func handleObjects(expected, actual Obj) error {
 	return nil
 }
 
-func handleArrays(expected, actual Arr) error {
-	differences := compareArrays(expected, actual)
+func handleArrays(expected, actual Arr, opts EqualOptions) error {
+	differences := compareArrays(expected, actual, opts)
 	if len(differences) > 0 {
 		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
@@ -54,7 +60,7 @@ func handleArrays(expected, actual Arr) error {
 	return nil
 }
 
-func compareObjects(expected, actual Obj) Differences {
+func compareObjects(expected, actual Obj, opts EqualOptions) Differences {
 	var diffs Differences
 	for _, k := range expected.Keys() {
 		_, exists := actual[k]
@@ -87,19 +93,21 @@ func compareObjects(expected, actual Obj) Differences {
 
 		actualValue := actual[key]
 
-		if err := compareValues(expectedValue, actualValue); err != nil {
-			diffs = append(diffs, Difference{
-				prefix: Both,
-				diff:   err.Error(),
-				path:   key,
-			})
+		equal, diff := compareValues(expectedValue, actualValue, opts)
+		if equal {
+			continue
 		}
+		if diff.prefix == "" {
+			diff.prefix = Both
+		}
+		diff.path = key
+		diffs = append(diffs, diff)
 	}
 
 	return diffs
 }
 
-func compareArrays(expected, actual Arr) Differences {
+func compareArrays(expected, actual Arr, opts EqualOptions) Differences {
 	var diffs Differences
 	if len(expected) != len(actual) {
 		diffs = append(diffs, Difference{
@@ -112,20 +120,87 @@ func compareArrays(expected, actual Arr) Differences {
 		if i >= len(actual) {
 			continue
 		}
-		if err := compareValues(item, actual[i]); err != nil {
-			diffs = append(diffs, Difference{
-				path:   fmt.Sprintf("%d", i),
-				diff:   err.Error(),
-				prefix: Both,
-			})
+		equal, diff := compareValues(item, actual[i], opts)
+		if equal {
+			continue
 		}
+		if diff.prefix == "" {
+			diff.prefix = Both
+		}
+		diff.path = fmt.Sprintf("%d", i)
+		diffs = append(diffs, diff)
 	}
 	return diffs
 }
 
-func compareValues(expected, actual any) error {
-	if !reflect.DeepEqual(expected, actual) {
-		return fmt.Errorf("expected %q - actual %q", expected, actual)
+func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
+	var (
+		diff  Difference
+		equal = true
+	)
+	switch expectedTyped := expected.(type) {
+	case nil:
+		if actual != nil {
+			diff.diff = fmt.Sprintf("expected nil - got %T (%v)", actual, actual)
+			equal = false
+		}
+	case bool:
+		if err := compareTyped(expectedTyped, actual); err != nil {
+			diff.diff = err.Error()
+			equal = false
+		}
+	case float64:
+		if err := compareTyped(expectedTyped, actual); err != nil {
+			diff.diff = err.Error()
+			equal = false
+		}
+	case string:
+		if err := compareTyped(expectedTyped, actual); err != nil {
+			diff.diff = err.Error()
+			equal = false
+		}
+	case []any:
+		expectedArr := Arr(expectedTyped)
+		actualTyped, ok := actual.([]any)
+		if !ok {
+			diff.diff = fmt.Sprintf("expected array - got %T (%v)", actual, actual)
+			equal = false
+			break
+		}
+		actualArr := Arr(actualTyped)
+		diffs := compareArrays(expectedArr, actualArr, opts)
+		if len(diffs) > 0 {
+			diff.diff = diffs.Report()
+			equal = false
+		}
+	case map[string]any:
+		expectedObj := Obj(expectedTyped)
+		actualTyped, ok := actual.(map[string]any)
+		if !ok {
+			diff.diff = fmt.Sprintf("expected object - got %T (%v)", actual, actual)
+			equal = false
+			break
+		}
+		actualObj := Obj(actualTyped)
+		diffs := compareObjects(expectedObj, actualObj, opts)
+		if len(diffs) > 0 {
+			diff.diff = diffs.Report()
+			equal = false
+		}
+	default:
+		diff.prefix = Expected
+		diff.diff = fmt.Sprintf("unsupported type comparison for expected value %q", expectedTyped)
+		equal = false
 	}
+
+	return equal, diff
+}
+
+func compareTyped[T any](expected T, actual any) error {
+	actualType, ok := actual.(T)
+	if !ok || !reflect.DeepEqual(expected, actualType) {
+		return fmt.Errorf(`expected "%v" - got "%v"`, expected, actual)
+	}
+
 	return nil
 }

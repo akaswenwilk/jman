@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestEqual Basic Functionality
+
 func TestEqual_Strings(t *testing.T) {
 	expected := `{"hello": "world", "foo": "bar", "baz": 123}`
 	actual := `{"foo": "bar", "hello": "world", "baz": 123}`
@@ -212,7 +214,7 @@ func TestEqual_DifferentTypes_ExpectArr(t *testing.T) {
 	assert.Equal(t, "expected a json array, got map[string]interface {}", err.Error())
 }
 
-func TestNew_UnexpectedType(t *testing.T) {
+func TestEqual_UnexpectedType(t *testing.T) {
 	expected := jman.Obj{
 		"key": "value",
 	}
@@ -240,19 +242,35 @@ func TestEqual_InvalidJSON_Actual(t *testing.T) {
 }
 
 
+// TestEqual Options
+
+func TestEqual_Placeholder_Simple(t *testing.T) {
+	expected := `{"hello": "$ANY"}`
+	actual := `{"hello": "world"}`
+
+	// Using a placeholder for the 'baz' field
+	assert.NoError(t, jman.Equal(expected, actual, 
+		jman.WithMatchers(
+			jman.NotEmpty("$ANY"),
+		),
+	))
+}
+
 /*
  TODO:
-
 --- Options ---
 - add support for options for placeholders (naming tbd)
+- - make a way to define a set of default placeholders
+- - add matchers for uuid regex
 - add support for options on equal to add/subtract/edit from actual
 - add support for ignore order option for array
 
 --- Error Display ---
+- test error display for mismatched types for each type
+- test error display for different values for each type
 - test for nice error display
 - add subdifferences plus indented error messages to show differences in nested fields
 - color output
-
 
 --- Helper Methods ---
 - add support for EqualValue (dot notation plus value)
