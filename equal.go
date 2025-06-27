@@ -46,33 +46,12 @@ func handleObjects(expected, actual Obj) error {
 }
 
 func handleArrays(expected, actual Arr) error {
+	differences := compareArrays(expected, actual)
+	if len(differences) > 0 {
+		return fmt.Errorf("expected not equal to actual: %s", differences.Report())
+	}
+
 	return nil
-}
-
-type Differences []Difference
-
-func (d Differences) Report() string {
-	var report string
-	for _, diff := range d {
-		report += fmt.Sprintf("%s.%s %s", diff.expectedOrActual, diff.path, diff.diff)
-	}
-	return report
-}
-
-func (d Differences) HasKey(key string) bool {
-	for _, d := range d {
-		if d.path == key {
-			return true
-		}
-	}
-
-	return false
-}
-
-type Difference struct {
-	expectedOrActual string
-	diff             string
-	path             string
 }
 
 func compareObjects(expected, actual Obj) Differences {
@@ -81,9 +60,9 @@ func compareObjects(expected, actual Obj) Differences {
 		_, exists := actual[k]
 		if !exists {
 			diffs = append(diffs, Difference{
-				expectedOrActual: "expected",
-				diff:             "missing key",
-				path:             k,
+				prefix: Expected,
+				diff:   "missing key",
+				path:   k,
 			})
 		}
 	}
@@ -92,9 +71,9 @@ func compareObjects(expected, actual Obj) Differences {
 		_, exists := actual[k]
 		if !exists {
 			diffs = append(diffs, Difference{
-				expectedOrActual: "actual",
-				diff:             "unexpected key",
-				path:             k,
+				prefix: Actual,
+				diff:   "unexpected key",
+				path:   k,
 			})
 		}
 	}
@@ -110,13 +89,36 @@ func compareObjects(expected, actual Obj) Differences {
 
 		if err := compareValues(expectedValue, actualValue); err != nil {
 			diffs = append(diffs, Difference{
-				expectedOrActual: "both",
-				diff:             err.Error(),
-				path:             key,
+				prefix: Both,
+				diff:   err.Error(),
+				path:   key,
 			})
 		}
 	}
 
+	return diffs
+}
+
+func compareArrays(expected, actual Arr) Differences {
+	var diffs Differences
+	if len(expected) != len(actual) {
+		diffs = append(diffs, Difference{
+			prefix: Expected,
+			diff:   fmt.Sprintf("should have %d items, but got %d", len(expected), len(actual)),
+		})
+	}
+
+	for i, item := range expected {
+		if i >= len(actual) {
+			continue
+		}
+		if err := compareValues(item, actual[i]); err != nil {
+			diffs = append(diffs, Difference{
+				path: fmt.Sprintf("%d", i),
+				diff: err.Error(),
+			})
+		}
+	}
 	return diffs
 }
 

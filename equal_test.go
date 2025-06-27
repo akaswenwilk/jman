@@ -93,14 +93,33 @@ func TestEqual_NestedObj_String(t *testing.T) {
 	assert.NoError(t, jman.Equal(expected, actual))
 }
 
-// func TestEqual_SliceSimple_String(t *testing.T) {
-// 	expected := `["hello", "world"]`
-// 	actual := `["hello", "world"]`
-//
-// 	assert.NoError(t, jman.Equal(expected, actual))
-// }
-func TestEqual_SliceSimple_Bytes(t *testing.T) {}
-func TestEqual_SliceSimple_Array(t *testing.T) {}
+func TestEqual_SliceSimple_String(t *testing.T) {
+	expected := `["hello", "world", 123, false]`
+	actual := `["hello", "world", 123, false]`
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+func TestEqual_SliceSimple_Bytes(t *testing.T) {
+	expected := []byte(`["hello", "world"]`)
+	actual := []byte(`["hello", "world"]`)
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+func TestEqual_SliceSimple_Array(t *testing.T) {
+	expected := jman.Arr{"hello", "world", 123, false}
+	actual := jman.Arr{"hello", "world", 123, false}
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+
+
+func TestEqual_SliceSimple_Mixed(t *testing.T) {
+	expected := `["hello", "world", 123, false]`
+	actual := jman.Arr{"hello", "world", 123, false}
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+
 
 func TestEqual_SliceNotSameOrder(t *testing.T) {}
 
