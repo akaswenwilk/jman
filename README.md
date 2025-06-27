@@ -1,10 +1,11 @@
-
-     ██╗ ███╗   ███╗ █████╗ ███╗   ██╗
-     ██║████╗ ████║██╔══██╗████╗  ██║
-     ██║██╔████╔██║███████║██╔██╗ ██║
-██   ██║██║╚██╔╝██║██╔══██║██║╚██╗██║
-╚█████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║
-╚════╝  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝
+<pre>
+                     ██╗███╗   ███╗ █████╗ ███╗   ██╗
+                     ██║████╗ ████║██╔══██╗████╗  ██║
+                     ██║██╔████╔██║███████║██╔██╗ ██║
+                ██   ██║██║╚██╔╝██║██╔══██║██║╚██╗██║
+                ╚█████╔╝██║ ╚═╝ ██║██║  ██║██║ ╚████║
+                ╚════╝  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝
+</pre>
 
 # jman (json manipulator)
 
@@ -13,21 +14,16 @@ Minimal, fast, idiomatic.
 
 ---
 
-## Table of Contents
+# Table of Contents
 
 [[_TOC_]]
 
 ---
 
-## Features
+## Context
 
-- easily compare json objects using strings, bytes, or jman.Obj
-- support for dynamic comparison for values
-- support for ignoring order when comparing arrays
-- integrates with any test suite supporting testing.T
-- easily access different parts of a json object with dot notation: e.g. `{"hello": "world", "foo":[{"bar":"baz}]}` `"hello.foo.0.bar"`
-
----
+- integrates with testing libraries
+- easily work with json
 
 ## Quick Start
 
@@ -41,3 +37,12 @@ func TestExample(t *testing.T) {
 }
 
 ## API
+
+### Basic Equal
+### Options
+#### Matchers
+#### IgnoreArrayOrder
+### Helper Methods
+### json models (Arr, Obj)
+
+## Error Messages
