@@ -13,3 +13,9 @@ func WithMatchers(matchers ...Matcher) OptsFunc {
 		}
 	}
 }
+
+func WithDefaultMatchers(matchers Matchers) OptsFunc {
+	return func(o *EqualOptions) {
+		o.matchers = matchers
+	}
+}

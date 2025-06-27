@@ -241,17 +241,75 @@ func TestEqual_InvalidJSON_Actual(t *testing.T) {
 	assert.Equal(t, "invalid actual: error unmarshalling JSON string {\"key\": \"value\": unexpected end of JSON input", err.Error())
 }
 
-
 // TestEqual Options
 
-func TestEqual_Placeholder_Simple(t *testing.T) {
+func TestEqual_Matcher_SimpleObj(t *testing.T) {
 	expected := `{"hello": "$ANY"}`
 	actual := `{"hello": "world"}`
 
 	// Using a placeholder for the 'baz' field
-	assert.NoError(t, jman.Equal(expected, actual, 
+	assert.NoError(t, jman.Equal(expected, actual,
 		jman.WithMatchers(
 			jman.NotEmpty("$ANY"),
+		),
+	))
+}
+
+func TestEqual_Matcher_SimpleArray(t *testing.T) {
+	expected := `["$ANY", "world"]`
+	actual := `["hello", "world"]`
+
+	// Using a placeholder for the 'baz' field
+	assert.NoError(t, jman.Equal(expected, actual,
+		jman.WithMatchers(
+			jman.NotEmpty("$ANY"),
+		),
+	))
+}
+
+func TestEqual_Matcher_ComplexObj(t *testing.T) {
+	expected := `{
+		"users": [
+			{"name": "$ANY", "age": 30},
+			{"name": "Bob", "age": 25}
+		],
+		"meta": {"count": 2, "status": "ok"}
+	}`
+	actual := `{
+		"users": [
+			{"name": "Alice", "age": 30},
+			{"name": "Bob", "age": 25}
+		],
+		"meta": {"status": "ok", "count": 2}
+	}`
+
+	assert.NoError(t, jman.Equal(expected, actual,
+		jman.WithMatchers(
+			jman.NotEmpty("$ANY"),
+		),
+	))
+}
+
+func TestEqual_Matcher_SimpleEqualsMatcher(t *testing.T) {
+	expected := `{"hello": "$MY_DYNAMIC_VALUE"}`
+	actual := `{"hello": "world"}`
+
+	// Using a placeholder for the 'baz' field
+	assert.NoError(t, jman.Equal(expected, actual,
+		jman.WithMatchers(
+			jman.EqualMatcher("$MY_DYNAMIC_VALUE", "world"),
+		),
+	))
+}
+
+func TestEqual_Matcher_SimpleUUIDMatcher(t *testing.T) {
+	expected := `{"id": "$MY_UUID"}`
+	actual := `{"id": "123e4567-e89b-12d3-a456-426614174000"}`
+
+	// Using a placeholder for the 'baz' field
+	assert.NoError(t, jman.Equal(expected, actual,
+		jman.WithMatchers(
+			jman.IsUUID("$MY_UUID"),
 		),
 	))
 }
@@ -259,8 +317,6 @@ func TestEqual_Placeholder_Simple(t *testing.T) {
 /*
  TODO:
 --- Options ---
-- add support for options for placeholders (naming tbd)
-- - make a way to define a set of default placeholders
 - - add matchers for uuid regex
 - add support for options on equal to add/subtract/edit from actual
 - add support for ignore order option for array

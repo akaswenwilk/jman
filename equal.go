@@ -155,6 +155,15 @@ func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
 			equal = false
 		}
 	case string:
+		// matcher placeholders have to be strings, so we only need to search them here
+		matcher, found := opts.matchers.FindByPlaceholder(expectedTyped)
+		if found {
+			if !matcher.MatcherFunc(actual) {
+				diff.diff = fmt.Sprintf("expected value for placeholder %q does not match actual value %v", expectedTyped, actual)
+				equal = false
+			}
+			break
+		}
 		if err := compareTyped(expectedTyped, actual); err != nil {
 			diff.diff = err.Error()
 			equal = false
@@ -199,7 +208,7 @@ func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
 func compareTyped[T any](expected T, actual any) error {
 	actualType, ok := actual.(T)
 	if !ok || !reflect.DeepEqual(expected, actualType) {
-		return fmt.Errorf(`expected "%v" - got "%v"`, expected, actual)
+		return fmt.Errorf(`expected "%v" - actual "%v"`, expected, actual)
 	}
 
 	return nil
