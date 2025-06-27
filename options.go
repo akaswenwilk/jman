@@ -3,7 +3,8 @@ package jman
 type OptsFunc func(o *EqualOptions)
 
 type EqualOptions struct {
-	matchers Matchers
+	matchers         Matchers
+	ignoreArrayOrder []string
 }
 
 func WithMatchers(matchers ...Matcher) OptsFunc {
@@ -17,5 +18,11 @@ func WithMatchers(matchers ...Matcher) OptsFunc {
 func WithDefaultMatchers(matchers Matchers) OptsFunc {
 	return func(o *EqualOptions) {
 		o.matchers = matchers
+	}
+}
+
+func WithIgnoreArrayOrder(keys ...string) OptsFunc {
+	return func(o *EqualOptions) {
+		o.ignoreArrayOrder = append(o.ignoreArrayOrder, keys...)
 	}
 }

@@ -3,7 +3,10 @@ package jman
 import (
 	"fmt"
 	"reflect"
+	"slices"
 )
+
+const base = "$"
 
 func Equal(expected, actual any, optFuncs ...OptsFunc) error {
 	opts := EqualOptions{}
@@ -43,7 +46,7 @@ func Equal(expected, actual any, optFuncs ...OptsFunc) error {
 }
 
 func handleObjects(expected, actual Obj, opts EqualOptions) error {
-	differences := compareObjects(expected, actual, opts)
+	differences := compareObjects(base, expected, actual, opts)
 	if len(differences) > 0 {
 		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
@@ -52,7 +55,7 @@ func handleObjects(expected, actual Obj, opts EqualOptions) error {
 }
 
 func handleArrays(expected, actual Arr, opts EqualOptions) error {
-	differences := compareArrays(expected, actual, opts)
+	differences := compareArrays(base, expected, actual, opts)
 	if len(differences) > 0 {
 		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
@@ -60,7 +63,7 @@ func handleArrays(expected, actual Arr, opts EqualOptions) error {
 	return nil
 }
 
-func compareObjects(expected, actual Obj, opts EqualOptions) Differences {
+func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differences {
 	var diffs Differences
 	for _, k := range expected.Keys() {
 		_, exists := actual[k]
@@ -93,21 +96,20 @@ func compareObjects(expected, actual Obj, opts EqualOptions) Differences {
 
 		actualValue := actual[key]
 
-		equal, diff := compareValues(expectedValue, actualValue, opts)
+		equal, diff := compareValues(fmt.Sprintf("%s.%s", path, key), expectedValue, actualValue, opts)
 		if equal {
 			continue
 		}
 		if diff.prefix == "" {
 			diff.prefix = Both
 		}
-		diff.path = key
 		diffs = append(diffs, diff)
 	}
 
 	return diffs
 }
 
-func compareArrays(expected, actual Arr, opts EqualOptions) Differences {
+func compareArrays(path string, expected, actual Arr, opts EqualOptions) Differences {
 	var diffs Differences
 	if len(expected) != len(actual) {
 		diffs = append(diffs, Difference{
@@ -116,26 +118,60 @@ func compareArrays(expected, actual Arr, opts EqualOptions) Differences {
 		})
 	}
 
+	if slices.Contains(opts.ignoreArrayOrder, path) {
+		comparedDiffs := compareArraysIgnoreOrder(path, expected, actual, opts)
+		diffs = append(diffs, comparedDiffs...)
+	} else {
+		comparedDiffs := compareArraysStrictOrder(path, expected, actual, opts)
+		diffs = append(diffs, comparedDiffs...)
+	}
+	return diffs
+}
+
+func compareArraysIgnoreOrder(path string, expected, actual Arr, opts EqualOptions) Differences {
+	var diffs Differences
+	for i, item := range expected {
+		found := actual.Any(func(v any) bool {
+			equal, _ := compareValues(fmt.Sprintf("%s.%d", path, i), item, v, opts)
+			return equal
+		})
+		if found {
+			continue
+		}
+
+		d := Difference{
+			prefix: Expected,
+			path:   fmt.Sprintf("%s.%d", path, i),
+			diff:   "not found in actual",
+		}
+		diffs = append(diffs, d)
+	}
+	return diffs
+}
+
+func compareArraysStrictOrder(path string, expected, actual Arr, opts EqualOptions) Differences {
+	var diffs Differences
 	for i, item := range expected {
 		if i >= len(actual) {
 			continue
 		}
-		equal, diff := compareValues(item, actual[i], opts)
+		equal, diff := compareValues(fmt.Sprintf("%s.%d", path, i), item, actual[i], opts)
 		if equal {
 			continue
 		}
 		if diff.prefix == "" {
 			diff.prefix = Both
 		}
-		diff.path = fmt.Sprintf("%d", i)
 		diffs = append(diffs, diff)
 	}
 	return diffs
 }
 
-func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
+func compareValues(path string, expected, actual any, opts EqualOptions) (bool, Difference) {
 	var (
-		diff  Difference
+		diff = Difference{
+			path: path,
+		}
 		equal = true
 	)
 	switch expectedTyped := expected.(type) {
@@ -177,7 +213,7 @@ func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
 			break
 		}
 		actualArr := Arr(actualTyped)
-		diffs := compareArrays(expectedArr, actualArr, opts)
+		diffs := compareArrays(path, expectedArr, actualArr, opts)
 		if len(diffs) > 0 {
 			diff.diff = diffs.Report()
 			equal = false
@@ -191,7 +227,7 @@ func compareValues(expected, actual any, opts EqualOptions) (bool, Difference) {
 			break
 		}
 		actualObj := Obj(actualTyped)
-		diffs := compareObjects(expectedObj, actualObj, opts)
+		diffs := compareObjects(path, expectedObj, actualObj, opts)
 		if len(diffs) > 0 {
 			diff.diff = diffs.Report()
 			equal = false
