@@ -156,9 +156,6 @@ func compareArraysStrictOrder(path string, expected, actual Arr, opts EqualOptio
 		if equal {
 			continue
 		}
-		if diff.prefix == "" {
-			diff.prefix = Both
-		}
 		diffs = append(diffs, diff)
 	}
 	return diffs
@@ -172,17 +169,7 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 		equal = true
 	)
 	switch expectedTyped := expected.(type) {
-	case nil:
-		if actual != nil {
-			diff.diff = fmt.Sprintf("expected nil - got %T (%v)", actual, actual)
-			equal = false
-		}
-	case bool:
-		if err := compareTyped(expectedTyped, actual); err != nil {
-			diff.diff = err.Error()
-			equal = false
-		}
-	case float64:
+	case nil, bool, float64:
 		if err := compareTyped(expectedTyped, actual); err != nil {
 			diff.diff = err.Error()
 			equal = false
@@ -212,7 +199,7 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 		actualArr := Arr(actualTyped)
 		diffs := compareArrays(path, expectedArr, actualArr, opts)
 		if len(diffs) > 0 {
-			diff.diff = diffs.Report()
+			diff.subDiffs = diffs
 			equal = false
 		}
 	case map[string]any:
@@ -226,7 +213,7 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 		actualObj := Obj(actualTyped)
 		diffs := compareObjects(path, expectedObj, actualObj, opts)
 		if len(diffs) > 0 {
-			diff.diff = diffs.Report()
+			diff.subDiffs = diffs
 			equal = false
 		}
 	default:
@@ -250,7 +237,7 @@ func compareTyped[T any](expected T, actual any) error {
 
 func formatterFor(value any) string {
 	if value == nil {
-		return "nil"
+		return "%v"
 	}
 	if _, ok := value.(string); ok {
 		return "%q"

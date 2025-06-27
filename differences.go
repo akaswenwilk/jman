@@ -10,7 +10,11 @@ type Differences []Difference
 func (d Differences) Report() string {
 	var report string
 	for _, diff := range d {
-		report += fmt.Sprintf("%s\n", diff.String())
+		if diff.diff == "" {
+			report += diff.subDiffs.Report()
+		} else {
+			report += fmt.Sprintf("%s\n", diff.String())
+		}
 	}
 	return report
 }
@@ -34,9 +38,10 @@ const (
 )
 
 type Difference struct {
-	prefix Prefix
-	diff   string
-	path   string
+	prefix   Prefix
+	diff     string
+	path     string
+	subDiffs Differences
 }
 
 func (d Difference) String() string {

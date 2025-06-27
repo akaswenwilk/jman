@@ -335,15 +335,142 @@ $.key expected "value" - actual 123
 `, err.Error())
 }
 
+func TestEqual_Error_DifferentTypes_ValuesNumber(t *testing.T) {
+	expected := `{"key": 123}` // Different type for the value
+	actual := `{"key": "value"}`
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected 123 - actual "value"
+`, err.Error())
+}
+
+func TestEqual_Error_DifferentTypes_ValuesBool(t *testing.T) {
+	expected := `{"key": true}` // Different type for the value
+	actual := `{"key": "value"}`
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected true - actual "value"
+`, err.Error())
+}
+
+func TestEqual_Error_DifferentTypes_ValuesNull(t *testing.T) {
+	expected := `{"key": null}` // Different type for the value
+	actual := `{"key": "value"}`
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected <nil> - actual "value"
+`, err.Error())
+}
+
+func TestEqual_Error_DifferentTypes_ValuesArr(t *testing.T) {
+	expected := `{"key": ["value"]}`
+	actual := `{"key": "value"}`
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected array - got string (value)
+`, err.Error())
+}
+
+func TestEqual_Error_DifferentTypes_ValuesObj(t *testing.T) {
+	expected := `{"key": {"value":"subvalue"}}`
+	actual := `{"key": ["value"]}`
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected object - got []interface {} ([value])
+`, err.Error())
+}
+
+func TestEqual_Error_DisplayPathObj(t *testing.T) {
+	expected := jman.Obj{
+		"foo": jman.Obj{
+			"bar": jman.Arr{
+				"hello",
+				jman.Obj{
+					"baz": "quux",
+				},
+			},
+		},
+	}
+	actual := jman.Obj{
+		"foo": jman.Obj{
+			"bar": jman.Arr{
+				"hello",
+				jman.Obj{
+					"baz": "quant",
+				},
+			},
+		},
+	}
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.foo.bar.1.baz expected "quux" - actual "quant"
+`, err.Error())
+}
+
+func TestEqual_Error_DisplayPathArr(t *testing.T) {
+	expected := jman.Arr{1, 2, 3}
+	actual := jman.Arr{1, 2, 5}
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.2 expected 3 - actual 5
+`, err.Error())
+}
+
+func TestEqual_Error_ManyDisplayPaths(t *testing.T) {
+	expected := jman.Arr{
+		"hello",
+		jman.Obj{
+			"foo": "bar",
+			"baz": jman.Arr{
+				jman.Obj{"key":"value"},
+				"quux",
+			},
+		},
+		"world",
+		jman.Arr{1, 2, false, nil},
+	}
+	actual := jman.Arr{
+		"HELLO",
+		jman.Obj{
+			"foo": "BAR",
+			"baz": jman.Arr{
+				jman.Obj{"key":"VALUE"},
+				"QUUX",
+			},
+		},
+		"WORLD",
+		jman.Arr{nil, 2, 1, false},
+	}
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.0 expected "hello" - actual "HELLO"
+$.1.baz.0.key expected "value" - actual "VALUE"
+$.1.baz.1 expected "quux" - actual "QUUX"
+$.1.foo expected "bar" - actual "BAR"
+$.2 expected "world" - actual "WORLD"
+$.3.0 expected 1 - actual <nil>
+$.3.2 expected false - actual 1
+$.3.3 expected <nil> - actual false
+`, err.Error())
+}
+
 /*
  TODO:
-
---- Error Display ---
-- test error display for mismatched types for each type
-- test error display for different values for each type
-- test for nice error display
-- add subdifferences plus indented error messages to show differences in nested fields
-- color output
 
 --- Helper Methods ---
 - add support for EqualValue (dot notation plus value)
