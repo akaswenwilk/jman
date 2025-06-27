@@ -99,19 +99,20 @@ func TestEqual_SliceSimple_String(t *testing.T) {
 
 	assert.NoError(t, jman.Equal(expected, actual))
 }
+
 func TestEqual_SliceSimple_Bytes(t *testing.T) {
 	expected := []byte(`["hello", "world"]`)
 	actual := []byte(`["hello", "world"]`)
 
 	assert.NoError(t, jman.Equal(expected, actual))
 }
+
 func TestEqual_SliceSimple_Array(t *testing.T) {
 	expected := jman.Arr{"hello", "world", 123, false}
 	actual := jman.Arr{"hello", "world", 123, false}
 
 	assert.NoError(t, jman.Equal(expected, actual))
 }
-
 
 func TestEqual_SliceSimple_Mixed(t *testing.T) {
 	expected := `["hello", "world", 123, false]`
@@ -120,23 +121,127 @@ func TestEqual_SliceSimple_Mixed(t *testing.T) {
 	assert.NoError(t, jman.Equal(expected, actual))
 }
 
+func TestEqual_SliceNotSameOrder(t *testing.T) {
+	expected := jman.Arr{"hello", "world", 123, false}
+	actual := jman.Arr{"world", "hello", 123, false}
 
-func TestEqual_SliceNotSameOrder(t *testing.T) {}
+	// This should fail because the order is different
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.0 expected "hello" - actual "world"
+$.1 expected "world" - actual "hello"
+`, err.Error())
+}
 
-func TestEqual_SliceObjects(t *testing.T) {}
+func TestEqual_SliceNullValues(t *testing.T) {
+	expected := `[null, "world", 123, false]`
+	actual := jman.Arr{nil, "world", 123, false}
 
-func TestEqual_ComplexObj(t *testing.T) {}
+	assert.NoError(t, jman.Equal(expected, actual))
+}
 
-func TestNew_UnexpectedType(t *testing.T) {}
+func TestEqual_SliceOfObjects(t *testing.T) {
+	expected := jman.Arr{
+		jman.Obj{"name": "Alice", "age": 30},
+		jman.Obj{"name": "Bob", "age": 25},
+	}
+	actual := jman.Arr{
+		jman.Obj{"name": "Alice", "age": 30},
+		jman.Obj{"name": "Bob", "age": 25},
+	}
 
-func TestEqual_InvalidJSON(t *testing.T) {}
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+
+func TestEqual_ObjectOfSlices(t *testing.T) {
+	expected := jman.Obj{
+		"names": jman.Arr{"Alice", "Bob"},
+		"ages":  jman.Arr{30, 25},
+	}
+	actual := jman.Obj{
+		"ages":  jman.Arr{30, 25},
+		"names": jman.Arr{"Alice", "Bob"},
+	}
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+
+func TestEqual_ComplexObj(t *testing.T) {
+	expected := jman.Obj{
+		"users": jman.Arr{
+			jman.Obj{"name": "Alice", "age": 30, "active": true},
+			jman.Obj{"name": "Bob", "age": 25, "active": false},
+		},
+		"meta": jman.Obj{
+			"count":  2,
+			"status": "ok",
+		},
+	}
+	actual := jman.Obj{
+		"meta": jman.Obj{
+			"status": "ok",
+			"count":  2,
+		},
+		"users": jman.Arr{
+			jman.Obj{"name": "Alice", "age": 30, "active": true},
+			jman.Obj{"name": "Bob", "age": 25, "active": false},
+		},
+	}
+
+	assert.NoError(t, jman.Equal(expected, actual))
+}
+
+func TestEqual_DifferentTypes_ExpectObj(t *testing.T) {
+	expected := jman.Obj{
+		"key": "value",
+	}
+	actual := jman.Arr{"key", "value"}
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, "expected a json object, got []interface {}", err.Error())
+}
+
+func TestEqual_DifferentTypes_ExpectArr(t *testing.T) {
+	expected := jman.Arr{"key", "value"}
+	actual := jman.Obj{
+		"key": "value",
+	}
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, "expected a json array, got map[string]interface {}", err.Error())
+}
+
+func TestNew_UnexpectedType(t *testing.T) {
+	expected := jman.Obj{
+		"key": "value",
+	}
+	actual := 123 // This is an unexpected type
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid actual: type %!s(int=123) not supported. use either string, []byte, jman.Obj, or jman.Arr", err.Error())
+}
+
+func TestEqual_InvalidJSON_Expected(t *testing.T) {
+	expected := `{"key": "value"`
+	actual := `{"key": "value"}`
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid expected: error unmarshalling JSON string {\"key\": \"value\": unexpected end of JSON input", err.Error())
+}
+
+func TestEqual_InvalidJSON_Actual(t *testing.T) {
+	expected := `{"key": "value"}`
+	actual := `{"key": "value"`
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid actual: error unmarshalling JSON string {\"key\": \"value\": unexpected end of JSON input", err.Error())
+}
+
 
 /*
  TODO:
-
---- Basic Functionality ---
-- make sure works with null/nil values
-- add test for trying to compare object against array
 
 --- Options ---
 - add support for options for placeholders (naming tbd)

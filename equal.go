@@ -39,7 +39,7 @@ func Equal(expected, actual any) error {
 func handleObjects(expected, actual Obj) error {
 	differences := compareObjects(expected, actual)
 	if len(differences) > 0 {
-		return fmt.Errorf("expected not equal to actual: %s", differences.Report())
+		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
 
 	return nil
@@ -48,7 +48,7 @@ func handleObjects(expected, actual Obj) error {
 func handleArrays(expected, actual Arr) error {
 	differences := compareArrays(expected, actual)
 	if len(differences) > 0 {
-		return fmt.Errorf("expected not equal to actual: %s", differences.Report())
+		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func compareArrays(expected, actual Arr) Differences {
 	if len(expected) != len(actual) {
 		diffs = append(diffs, Difference{
 			prefix: Expected,
-			diff:   fmt.Sprintf("should have %d items, but got %d", len(expected), len(actual)),
+			diff:   fmt.Sprintf("expected %d items - got %d items", len(expected), len(actual)),
 		})
 	}
 
@@ -114,8 +114,9 @@ func compareArrays(expected, actual Arr) Differences {
 		}
 		if err := compareValues(item, actual[i]); err != nil {
 			diffs = append(diffs, Difference{
-				path: fmt.Sprintf("%d", i),
-				diff: err.Error(),
+				path:   fmt.Sprintf("%d", i),
+				diff:   err.Error(),
+				prefix: Both,
 			})
 		}
 	}
@@ -124,7 +125,7 @@ func compareArrays(expected, actual Arr) Differences {
 
 func compareValues(expected, actual any) error {
 	if !reflect.DeepEqual(expected, actual) {
-		return fmt.Errorf("expected %v not equal to actual %v", expected, actual)
+		return fmt.Errorf("expected %q - actual %q", expected, actual)
 	}
 	return nil
 }
