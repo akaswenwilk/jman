@@ -6,21 +6,46 @@ import (
 )
 
 func Equal(expected, actual any) error {
-	expectedObj, err := NewObject(expected)
+	exp, err := New(expected)
 	if err != nil {
-		return fmt.Errorf("invalid expected: %s", err.Error())
+		return fmt.Errorf("invalid expected: %w", err)
 	}
 
-	actualObj, err := NewObject(actual)
+	act, err := New(actual)
 	if err != nil {
-		return fmt.Errorf("invalid actual: %s", err.Error())
+		return fmt.Errorf("invalid actual: %w", err)
 	}
 
-	differences := compare(expectedObj, actualObj)
+	if expectedSlice, ok := NewArrFromAny(exp); ok {
+		actualSlice, ok := NewArrFromAny(act)
+		if !ok {
+			return fmt.Errorf("expected a json array, got %T", act)
+		}
+
+		return handleArrays(expectedSlice, actualSlice)
+	}
+
+	if expectedObj, ok := NewObjFromAny(exp); ok {
+		actualObj, ok := NewObjFromAny(act)
+		if !ok {
+			return fmt.Errorf("expected a json object, got %T", act)
+		}
+		return handleObjects(expectedObj, actualObj)
+	}
+
+	return fmt.Errorf("unexpected type for expected %+v.  Use a json object/array string/byte, or jman.Obj or jman.Arr", expected)
+}
+
+func handleObjects(expected, actual Obj) error {
+	differences := compareObjects(expected, actual)
 	if len(differences) > 0 {
 		return fmt.Errorf("expected not equal to actual: %s", differences.Report())
 	}
 
+	return nil
+}
+
+func handleArrays(expected, actual Arr) error {
 	return nil
 }
 
@@ -50,7 +75,7 @@ type Difference struct {
 	path             string
 }
 
-func compare(expected, actual Obj) Differences {
+func compareObjects(expected, actual Obj) Differences {
 	var diffs Differences
 	for _, k := range expected.Keys() {
 		_, exists := actual[k]
