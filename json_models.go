@@ -33,15 +33,6 @@ func NewArrFromAny(raw any) (Arr, bool) {
 	return nil, false
 }
 
-func (a Arr) Any(check func(v any) bool) bool {
-	for _, v := range a {
-		if check(v) {
-			return true
-		}
-	}
-	return false
-}
-
 func New(givenJSON any) (any, error) {
 	var o any
 	switch v := givenJSON.(type) {

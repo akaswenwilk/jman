@@ -40,7 +40,13 @@ type Difference struct {
 }
 
 func (d Difference) String() string {
-	prefixes := []string{string(d.prefix), d.path}
+	var prefixes []string
+	if d.prefix != "" {
+		prefixes = append(prefixes, string(d.prefix))
+	}
+	if d.path != "" {
+		prefixes = append(prefixes, d.path)
+	}
 	prefix := strings.Join(prefixes, ".")
 	return fmt.Sprintf("%s %s", prefix, d.diff)
 }

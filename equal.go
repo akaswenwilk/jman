@@ -100,9 +100,6 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 		if equal {
 			continue
 		}
-		if diff.prefix == "" {
-			diff.prefix = Both
-		}
 		diffs = append(diffs, diff)
 	}
 
@@ -131,7 +128,7 @@ func compareArrays(path string, expected, actual Arr, opts EqualOptions) Differe
 func compareArraysIgnoreOrder(path string, expected, actual Arr, opts EqualOptions) Differences {
 	var diffs Differences
 	for i, item := range expected {
-		found := actual.Any(func(v any) bool {
+		found := slices.ContainsFunc(actual, func(v any) bool {
 			equal, _ := compareValues(fmt.Sprintf("%s.%d", path, i), item, v, opts)
 			return equal
 		})
@@ -244,8 +241,22 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 func compareTyped[T any](expected T, actual any) error {
 	actualType, ok := actual.(T)
 	if !ok || !reflect.DeepEqual(expected, actualType) {
-		return fmt.Errorf(`expected "%v" - actual "%v"`, expected, actual)
+		errorMessage := `expected ` + formatterFor(expected) + ` - actual ` + formatterFor(actual)
+		return fmt.Errorf(errorMessage, expected, actual)
 	}
 
 	return nil
+}
+
+func formatterFor(value any) string {
+	if value == nil {
+		return "nil"
+	}
+	if _, ok := value.(string); ok {
+		return "%q"
+	}
+	if _, ok := value.(bool); ok {
+		return "%t"
+	}
+	return "%v"
 }

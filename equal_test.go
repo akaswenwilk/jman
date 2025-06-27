@@ -324,11 +324,19 @@ func TestEqual_IgnoreArrayOrder(t *testing.T) {
 	))
 }
 
+func TestEqual_Error_DifferentTypes_ValuesString(t *testing.T) {
+	expected := `{"key": "value"}`
+	actual := `{"key": 123}` // Different type for the value
+
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key expected "value" - actual 123
+`, err.Error())
+}
+
 /*
  TODO:
---- Options ---
-- add support for options on equal to add/subtract/edit from actual
-- add support for ignore order option for array
 
 --- Error Display ---
 - test error display for mismatched types for each type
@@ -339,9 +347,20 @@ func TestEqual_IgnoreArrayOrder(t *testing.T) {
 
 --- Helper Methods ---
 - add support for EqualValue (dot notation plus value)
+- -
 - add has key method
 - method to take a json payload and return a modified json payload
 - add a marshal json and a must marshal json to Obj/Arr
+
+-- add method to check equality from file
+- if not written, fail the test but write the file
+
+--- Options ---
+- jman.Merge
+- jman.Remove
+- jman.Append
+- add support for options on equal to add/subtract/edit from expected
+
 
 
 --- Docu ---
