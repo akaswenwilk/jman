@@ -324,6 +324,18 @@ func TestEqual_IgnoreArrayOrder(t *testing.T) {
 	))
 }
 
+func TestEqual_IgnoreArrayOrder_BadPath(t *testing.T) {
+	expected := `{"items": ["apple", "banana", "cherry"]}`
+	actual := `{"items": ["cherry", "banana", "apple"]}`
+
+	// This should fail because the path does not start with $
+	err := jman.Equal(expected, actual,
+		jman.WithIgnoreArrayOrder("items"),
+	)
+	assert.Error(t, err)
+	assert.Equal(t, "invalid options: key for ignoring array order must start with $", err.Error())
+}
+
 func TestEqual_Error_DifferentTypes_ValuesString(t *testing.T) {
 	expected := `{"key": "value"}`
 	actual := `{"key": 123}` // Different type for the value

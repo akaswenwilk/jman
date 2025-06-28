@@ -17,14 +17,18 @@ func Equal(expected, actual any, optFuncs ...OptsFunc) error {
 		o(&opts)
 	}
 
-	exp, err := New(expected)
-	if err != nil {
-		return fmt.Errorf("invalid expected: %w", err)
+	if err := opts.valid(); err != nil {
+		return fmt.Errorf("invalid options: %w", err)
 	}
 
-	act, err := New(actual)
-	if err != nil {
-		return fmt.Errorf("invalid actual: %w", err)
+	exp := New(expected)
+	if exp.Err() != nil {
+		return fmt.Errorf("invalid expected: %w", exp.Err())
+	}
+
+	act := New(actual)
+	if act.Err() != nil {
+		return fmt.Errorf("invalid actual: %w", act.Err())
 	}
 
 	if exp.IsArr() {

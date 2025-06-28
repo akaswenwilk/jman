@@ -11,11 +11,12 @@ const (
 	UnknownType = "unknown"
 )
 
-type JSONModel struct {
+type JSONResult struct {
 	data any
+	err  error
 }
 
-func (j *JSONModel) Obj() (Obj, error) {
+func (j *JSONResult) Obj() (Obj, error) {
 	dataObj, ok := j.data.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("data is not a JSON object")
@@ -23,12 +24,12 @@ func (j *JSONModel) Obj() (Obj, error) {
 	return Obj(dataObj), nil
 }
 
-func (j *JSONModel) IsObj() bool {
+func (j *JSONResult) IsObj() bool {
 	_, ok := j.data.(map[string]any)
 	return ok
 }
 
-func (j *JSONModel) Arr() (Arr, error) {
+func (j *JSONResult) Arr() (Arr, error) {
 	dataObj, ok := j.data.([]any)
 	if !ok {
 		return nil, fmt.Errorf("data is not a JSON array")
@@ -36,12 +37,12 @@ func (j *JSONModel) Arr() (Arr, error) {
 	return Arr(dataObj), nil
 }
 
-func (j *JSONModel) IsArr() bool {
+func (j *JSONResult) IsArr() bool {
 	_, ok := j.data.([]any)
 	return ok
 }
 
-func (j *JSONModel) UnderlyingType() string {
+func (j *JSONResult) UnderlyingType() string {
 	switch j.data.(type) {
 	case map[string]any:
 		return ObjectType
@@ -50,6 +51,13 @@ func (j *JSONModel) UnderlyingType() string {
 	default:
 		return UnknownType
 	}
+}
+
+func (j *JSONResult) Err() error {
+	if j.err != nil {
+		return j.err
+	}
+	return nil
 }
 
 type Obj map[string]any
@@ -96,31 +104,35 @@ func (a Arr) MustMarshal() []byte {
 	return data
 }
 
-func New(givenJSON any) (JSONModel, error) {
-	var result any
+func New(givenJSON any) JSONResult {
+	var (
+		model any
+		result JSONResult
+	)
 	switch v := givenJSON.(type) {
 	case string:
 		data := givenJSON.(string)
-		if err := json.Unmarshal([]byte(data), &result); err != nil {
-			return JSONModel{}, fmt.Errorf("error unmarshalling JSON string %s: %w", data, err)
+		if err := json.Unmarshal([]byte(data), &model); err != nil {
+			result.err = fmt.Errorf("error unmarshalling JSON string %s: %w", data, err)
 		}
 	case []byte:
 		data := givenJSON.([]byte)
-		if err := json.Unmarshal(data, &result); err != nil {
-			return JSONModel{}, fmt.Errorf("error unmarshalling JSON byte string %s: %w", string(data), err)
+		if err := json.Unmarshal(data, &model); err != nil {
+			result.err = fmt.Errorf("error unmarshalling JSON byte string %s: %w", string(data), err)
 		}
 	case Obj, Arr:
 		// to normalize the values, marshal and unmarshal the object
 		data, err := json.Marshal(givenJSON)
 		if err != nil {
-			return JSONModel{}, fmt.Errorf("error building JSON object: marshaling %v: %w", givenJSON, err)
+			result.err = fmt.Errorf("error building JSON object: marshaling %v: %w", givenJSON, err)
 		}
-		if err = json.Unmarshal(data, &result); err != nil {
-			return JSONModel{}, fmt.Errorf("error unmarshalling JSON object %v: %w", givenJSON, err)
+		if err = json.Unmarshal(data, &model); err != nil {
+			result.err = fmt.Errorf("error unmarshalling JSON object %v: %w", givenJSON, err)
 		}
 	default:
-		return JSONModel{}, fmt.Errorf("type %s not supported. use either string, []byte, jman.Obj, or jman.Arr", v)
+		result.err = fmt.Errorf("type %s not supported. use either string, []byte, jman.Obj, or jman.Arr", v)
 	}
 
-	return JSONModel{result}, nil
+	result.data = model
+	return result
 }
