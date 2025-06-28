@@ -1,7 +1,9 @@
 package jman
 
 import (
+	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 )
@@ -25,21 +27,24 @@ func Equal(expected, actual any, optFuncs ...OptsFunc) error {
 		return fmt.Errorf("invalid actual: %w", err)
 	}
 
-	if expectedSlice, ok := NewArrFromAny(exp); ok {
-		actualSlice, ok := NewArrFromAny(act)
-		if !ok {
-			return fmt.Errorf("expected a json array, got %T", act)
+	if exp.IsArr() {
+		if !act.IsArr() {
+			return fmt.Errorf("expected a json array, got %s", act.UnderlyingType())
 		}
 
-		return handleArrays(expectedSlice, actualSlice, opts)
+		expArr, _ := exp.Arr()
+		actArr, _ := act.Arr()
+		return handleArrays(expArr, actArr, opts)
 	}
 
-	if expectedObj, ok := NewObjFromAny(exp); ok {
-		actualObj, ok := NewObjFromAny(act)
-		if !ok {
-			return fmt.Errorf("expected a json object, got %T", act)
+	if exp.IsObj() {
+		if !act.IsObj() {
+			return fmt.Errorf("expected a json object, got %s", act.UnderlyingType())
 		}
-		return handleObjects(expectedObj, actualObj, opts)
+
+		expObj, _ := exp.Obj()
+		actObj, _ := act.Obj()
+		return handleObjects(expObj, actObj, opts)
 	}
 
 	return fmt.Errorf("unexpected type for expected %+v.  Use a json object/array string/byte, or jman.Obj or jman.Arr", expected)
@@ -65,7 +70,7 @@ func handleArrays(expected, actual Arr, opts EqualOptions) error {
 
 func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differences {
 	var diffs Differences
-	for _, k := range expected.Keys() {
+	for k := range maps.Keys(expected) {
 		_, exists := actual[k]
 		if !exists {
 			diffs = append(diffs, Difference{
@@ -76,7 +81,7 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 		}
 	}
 
-	for _, k := range actual.Keys() {
+	for k := range maps.Keys(actual) {
 		_, exists := actual[k]
 		if !exists {
 			diffs = append(diffs, Difference{
@@ -169,7 +174,12 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 		equal = true
 	)
 	switch expectedTyped := expected.(type) {
-	case nil, bool, float64:
+	case nil:
+		if actual != nil {
+			diff.diff = unequalMessage(expectedTyped, actual)
+			equal = false
+		}
+	case bool, float64:
 		if err := compareTyped(expectedTyped, actual); err != nil {
 			diff.diff = err.Error()
 			equal = false
@@ -228,11 +238,15 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 func compareTyped[T any](expected T, actual any) error {
 	actualType, ok := actual.(T)
 	if !ok || !reflect.DeepEqual(expected, actualType) {
-		errorMessage := `expected ` + formatterFor(expected) + ` - actual ` + formatterFor(actual)
-		return fmt.Errorf(errorMessage, expected, actual)
+		return errors.New(unequalMessage(expected, actual))
 	}
 
 	return nil
+}
+
+func unequalMessage(expected, actual any) string {
+	msg := `expected ` + formatterFor(expected) + ` - actual ` + formatterFor(actual)
+	return fmt.Sprintf(msg, expected, actual)
 }
 
 func formatterFor(value any) string {

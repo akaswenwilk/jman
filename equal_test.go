@@ -123,18 +123,18 @@ func TestEqual_SliceSimple_Mixed(t *testing.T) {
 	assert.NoError(t, jman.Equal(expected, actual))
 }
 
-// func TestEqual_SliceNotSameOrder(t *testing.T) {
-// 	expected := jman.Arr{"hello", "world", 123, false}
-// 	actual := jman.Arr{"world", "hello", 123, false}
-//
-// 	// This should fail because the order is different
-// 	err := jman.Equal(expected, actual)
-// 	assert.Error(t, err)
-// 	assert.Equal(t, `expected not equal to actual:
-// $.0 expected "hello" - actual "world"
-// $.1 expected "world" - actual "hello"
-// `, err.Error())
-// }
+func TestEqual_SliceNotSameOrder(t *testing.T) {
+	expected := jman.Arr{"hello", "world", 123, false}
+	actual := jman.Arr{"world", "hello", 123, false}
+
+	// This should fail because the order is different
+	err := jman.Equal(expected, actual)
+	assert.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.0 expected "hello" - actual "world"
+$.1 expected "world" - actual "hello"
+`, err.Error())
+}
 
 func TestEqual_SliceNullValues(t *testing.T) {
 	expected := `[null, "world", 123, false]`
@@ -201,7 +201,7 @@ func TestEqual_DifferentTypes_ExpectObj(t *testing.T) {
 	actual := jman.Arr{"key", "value"}
 	err := jman.Equal(expected, actual)
 	assert.Error(t, err)
-	assert.Equal(t, "expected a json object, got []interface {}", err.Error())
+	assert.Equal(t, "expected a json object, got array", err.Error())
 }
 
 func TestEqual_DifferentTypes_ExpectArr(t *testing.T) {
@@ -211,7 +211,7 @@ func TestEqual_DifferentTypes_ExpectArr(t *testing.T) {
 	}
 	err := jman.Equal(expected, actual)
 	assert.Error(t, err)
-	assert.Equal(t, "expected a json array, got map[string]interface {}", err.Error())
+	assert.Equal(t, "expected a json array, got object", err.Error())
 }
 
 func TestEqual_UnexpectedType(t *testing.T) {
@@ -481,13 +481,6 @@ $.3.3 expected <nil> - actual false
 
 -- add method to check equality from file
 - if not written, fail the test but write the file
-
---- Options ---
-- jman.Merge
-- jman.Remove
-- jman.Append
-- add support for options on equal to add/subtract/edit from expected
-
 
 
 --- Docu ---
