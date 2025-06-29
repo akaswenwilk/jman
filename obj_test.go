@@ -1,0 +1,366 @@
+package jman_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/akaswenwilk/jman"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewObj_String(t *testing.T) {
+	data := `{"key1": "value1", "key2": 2, "key3": true}`
+	obj, err := jman.New[jman.Obj](data)
+	require.NoError(t, err)
+
+	assert.Equal(t, jman.Obj{
+		"key1": "value1",
+		"key2": float64(2),
+		"key3": true,
+	}, obj)
+}
+
+func TestNewObj_Bytes(t *testing.T) {
+	data := []byte(`{"key1": "value1", "key2": 2, "key3": true}`)
+	obj, err := jman.New[jman.Obj](data)
+	require.NoError(t, err)
+
+	assert.Equal(t, jman.Obj{
+		"key1": "value1",
+		"key2": float64(2),
+		"key3": true,
+	}, obj)
+}
+
+func TestNewObj_UnsupportedType(t *testing.T) {
+	data := 12345 // unsupported type
+	_, err := jman.New[jman.Obj](data)
+
+	require.Error(t, err)
+	assert.EqualError(t, err, "int unsupported type for JSON data, use either string or []byte")
+}
+
+func TestNewObj_InvalidJSON(t *testing.T) {
+	data := `{"key1": "value1", "key2": 2, "key3": true,` // invalid JSON
+	_, err := jman.New[jman.Obj](data)
+	require.Error(t, err)
+	assert.EqualError(t, err, "error parsing JSON data {\"key1\": \"value1\", \"key2\": 2, \"key3\": true,: unexpected end of JSON input")
+}
+
+func TestObj_Equal_Strings(t *testing.T) {
+	expected := jman.Obj{
+		"foo":   "bar",
+		"hello": "world",
+		"baz":   123,
+	}
+	actual := `{"foo": "bar", "hello": "world", "baz": 123}`
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_Bytes(t *testing.T) {
+	expected := jman.Obj{
+		"foo":   "bar",
+		"hello": "world",
+		"baz":   123,
+	}
+	actual := []byte(`{"foo": "bar", "hello": "world", "baz": 123}`)
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_Objects(t *testing.T) {
+	expected := jman.Obj{
+		"foo":   "bar",
+		"hello": "world",
+		"baz":   123,
+	}
+	actual := jman.Obj{
+		"foo":   "bar",
+		"hello": "world",
+		"baz":   123,
+	}
+	assert.NoError(t, expected.Equal(actual))
+}
+
+// should work with any marshallable type
+func TestObj_Equal_ObjTime(t *testing.T) {
+	now := time.Now()
+	expected := jman.Obj{
+		"current_time": now,
+	}
+	actual := jman.Obj{
+		"current_time": now,
+	}
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_NestedObjects(t *testing.T) {
+	expected := jman.Obj{
+		"outer": jman.Obj{
+			"inner": "value",
+		},
+	}
+	actual := jman.Obj{
+		"outer": jman.Obj{
+			"inner": "value",
+		},
+	}
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_NestedSlices(t *testing.T) {
+	expected := jman.Obj{
+		"outer": jman.Arr{
+			jman.Obj{"inner": "value1"},
+			jman.Obj{"inner": "value2"},
+		},
+	}
+	actual := jman.Obj{
+		"outer": jman.Arr{
+			jman.Obj{"inner": "value1"},
+			jman.Obj{"inner": "value2"},
+		},
+	}
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_NullValues(t *testing.T) {
+	expected := jman.Obj{
+		"key1": nil,
+		"key2": "value",
+	}
+	actual := `{"key1": null, "key2": "value"}`
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_ComplexObjects(t *testing.T) {
+	expected := jman.Obj{
+		"key1": "value1",
+		"key2": 42,
+		"key3": true,
+		"nested": jman.Obj{
+			"innerKey1": jman.Arr{"innverValue1", jman.Obj{"innerKey2": 3.14}},
+			"innerKey2": 3.14,
+		},
+	}
+	actual := `{"key1": "value1", "key2": 42, "key3": true, "nested": {"innerKey1": ["innverValue1", {"innerKey2": 3.14}], "innerKey2": 3.14}}`
+	assert.NoError(t, expected.Equal(actual))
+}
+
+func TestObj_Equal_ComparedArray(t *testing.T) {
+	expected := jman.Obj{
+		"key1": "value1",
+		"key2": jman.Arr{"item1", "item2"},
+	}
+	actual := jman.Arr{
+		"item1",
+		"item2",
+	}
+	err := expected.Equal(actual)
+	assert.EqualError(t, err, "can't compare json object with jman.Arr")
+}
+
+func TestObj_Equal_Matcher_SimpleObj(t *testing.T) {
+	expected := jman.Obj{
+		"hello": "$ANY",
+	}
+	actual := `{"hello": "world"}`
+	assert.NoError(t, expected.Equal(actual,
+		jman.WithMatchers(jman.NotEmpty("$ANY"))),
+	)
+}
+
+func TestObj_Equal_Matcher_ComplexObj(t *testing.T) {
+	expected := jman.Obj{
+		"users": jman.Arr{
+			jman.Obj{
+				"id":   "$UUID",
+				"name": "$ANY",
+				"age":  30,
+			},
+			jman.Obj{
+				"id":   "$UUID",
+				"name": "$BOBS_NAME",
+				"age":  25,
+			},
+		},
+		"meta": jman.Obj{
+			"count":  2,
+			"status": "active",
+		},
+	}
+	actual := jman.Obj{
+		"users": jman.Arr{
+			jman.Obj{
+				"id":   "6bd8f7c1-a528-4829-8a98-2003066697b0",
+				"name": "Alice",
+				"age":  30,
+			},
+			jman.Obj{
+				"id":   "5facaa2a-77c3-40b9-9fa7-9f7b3823bdac",
+				"name": "Bob",
+				"age":  25,
+			},
+		},
+		"meta": jman.Obj{
+			"count":  2,
+			"status": "active",
+		},
+	}
+
+	assert.NoError(t, expected.Equal(actual,
+		jman.WithMatchers(
+			jman.IsUUID("$UUID"),
+			jman.NotEmpty("$ANY"),
+			jman.EqualMatcher("$BOBS_NAME", "Bob"),
+		),
+	))
+}
+
+func TestObj_Equal_IgnoreArrayOrder(t *testing.T) {
+	expected := jman.Obj{
+		"items": jman.Arr{"item1", "item2", "item3"},
+	}
+	actual := jman.Obj{
+		"items": jman.Arr{"item3", "item1", "item2"},
+	}
+
+	assert.NoError(t, expected.Equal(actual,
+		jman.WithIgnoreArrayOrder("$.items"),
+	))
+}
+
+func TestObj_Equal_IgnoreArrayOrder_IncorrectPathStart(t *testing.T) {
+	expected := jman.Obj{
+		"items": jman.Arr{"item1", "item2", "item3"},
+	}
+	actual := jman.Obj{
+		"items": jman.Arr{"item3", "item1", "item2"},
+	}
+	err := expected.Equal(actual,
+		jman.WithIgnoreArrayOrder("items"),
+	)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "invalid options: key for ignoring array order must start with $")
+}
+
+func TestObj_Equal_Unequal_DifferentTypes(t *testing.T) {
+	expected := jman.Obj{"key": "value"}
+	actual := jman.Obj{"key": 123} // different type
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.key expected "value" - actual 123
+`)
+}
+
+func TestObj_Equal_Unequal_DifferentTypesSubObjArr(t *testing.T) {
+	expected := jman.Obj{
+		"key1": jman.Obj{"subKey1": "subValue1"},
+	}
+	actual := jman.Obj{
+		"key1": jman.Arr{"subValue1"}, // different type (array instead of object)
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.key1 expected object - got []interface {} ([subValue1])
+`)
+}
+
+func TestObj_Equal_Unequal_DisplayPath(t *testing.T) {
+	expected := jman.Obj{
+		"foo": jman.Obj{
+			"bar": jman.Arr{
+				"hello",
+				jman.Obj{
+					"baz": "quux",
+				},
+			},
+		},
+	}
+	actual := jman.Obj{
+		"foo": jman.Obj{
+			"bar": jman.Arr{
+				"hello",
+				jman.Obj{
+					"baz": "quant",
+				},
+			},
+		},
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+
+	assert.EqualError(t, err, `expected not equal to actual:
+$.foo.bar.1.baz expected "quux" - actual "quant"
+`)
+}
+
+func TestObj_Equal_Unequal_ManyDisplayPaths(t *testing.T) {
+	expected := jman.Arr{
+		"hello",
+		jman.Obj{
+			"foo": "bar",
+			"baz": jman.Arr{
+				jman.Obj{"key": "value"},
+				"quux",
+			},
+		},
+		"world",
+		jman.Arr{1, 2, false, nil},
+	}
+	actual := jman.Arr{
+		"HELLO",
+		jman.Obj{
+			"foo": "BAR",
+			"baz": jman.Arr{
+				jman.Obj{"key": "VALUE"},
+				"QUUX",
+			},
+		},
+		"WORLD",
+		jman.Arr{nil, 2, 1, false},
+	}
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	expectedErrors := []string{
+		`$.0 expected "hello" - actual "HELLO"`,
+		`$.1.baz.0.key expected "value" - actual "VALUE"`,
+		`$.1.baz.1 expected "quux" - actual "QUUX"`,
+		`$.1.foo expected "bar" - actual "BAR"`,
+		`$.2 expected "world" - actual "WORLD"`,
+		`$.3.0 expected 1 - actual <nil>`,
+		`$.3.2 expected false - actual 1`,
+		`$.3.3 expected <nil> - actual false`,
+	}
+
+	for _, expectedError := range expectedErrors {
+		assert.Contains(t, err.Error(), expectedError)
+	}
+}
+
+/*
+ TODO:
+
+--- Helper Methods ---
+- add support for EqualValue (dot notation plus value)
+- -
+- add has key method
+- method to take a json payload and return a modified json payload
+- add a marshal json and a must marshal json to Obj/Arr
+
+-- add method to check equality from file
+- if not written, fail the test but write the file
+
+
+--- Docu ---
+- add godocs
+- update readme
+- add note that whatever is passed in as expected must be convertible into valid json as an array or object
+- fix the TOC
+- note that the dot notation must start with $
+*/

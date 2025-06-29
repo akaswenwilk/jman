@@ -5,6 +5,8 @@ import (
 	"regexp"
 )
 
+const base = "$"
+
 type OptsFunc func(o *EqualOptions)
 
 type EqualOptions struct {
