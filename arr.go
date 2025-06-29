@@ -1,11 +1,24 @@
 package jman
 
 import (
+	"encoding/json"
 	"fmt"
 	"slices"
 )
 
 type Arr []any
+
+func (a *Arr) UnmarshalJSON(data []byte) error {
+	var raw []any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	for _, v := range raw {
+		*a = append(*a, convert(v))
+	}
+	return nil
+}
 
 func (a Arr) Equal(other any, optFuncs ...OptsFunc) error {
 	opts := EqualOptions{}

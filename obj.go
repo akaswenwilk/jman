@@ -1,12 +1,45 @@
 package jman
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
 )
 
 type Obj map[string]any
+
+func (o *Obj) UnmarshalJSON(data []byte) error {
+	raw := map[string]any{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	*o = make(Obj)
+	for k, v := range raw {
+		(*o)[k] = convert(v)
+	}
+	return nil
+}
+
+func convert(v any) any {
+	switch vv := v.(type) {
+	case map[string]any:
+		sub := Obj{}
+		for k, val := range vv {
+			sub[k] = convert(val)
+		}
+		return sub
+	case []any:
+		sub := make(Arr, len(vv))
+		for i, el := range vv {
+			sub[i] = convert(el)
+		}
+		return sub
+	default:
+		return v
+	}
+}
 
 func (ob Obj) Equal(other any, optFuncs ...OptsFunc) error {
 	opts := EqualOptions{}
