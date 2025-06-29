@@ -431,15 +431,10 @@ func TestObj_Get_IncorrectConversion(t *testing.T) {
  TODO:
 
 --- Helper Methods ---
-- add support for EqualValue (dot notation plus value)
-- -
-- add has key method
-- method to take a json payload and return a modified json payload
-- add a marshal json and a must marshal json to Obj/Arr
-
--- add method to check equality from file
-- if not written, fail the test but write the file
-
+- add getter for Arr // with normalize
+- add setter for Obj // with normalize
+- add setter for Arr // with normalize
+- add muststring and mustbyte methods to Obj and Arr
 
 --- Docu ---
 - add godocs

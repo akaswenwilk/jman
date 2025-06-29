@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 type Arr []any
@@ -102,4 +103,26 @@ func compareArraysStrictOrder(path string, expected, actual Arr, opts EqualOptio
 		diffs = append(diffs, diff)
 	}
 	return diffs
+}
+
+func (a Arr) Get(path string) Result {
+	if path == "" {
+		return Result{err: fmt.Errorf("path cannot be empty")}
+	}
+
+	paths := strings.Split(path, ".")
+	if paths[0] != "$" {
+		return Result{err: fmt.Errorf("path must start with '$', got '%s'", paths[0])}
+	}
+
+	a, err := normalize(a)
+	if err != nil {
+		return Result{err: fmt.Errorf("expected is invalid json: %w", err)}
+	}
+
+	val, err := getValue(paths[1:], a)
+	return Result{
+		data: val,
+		err:  err,
+	}
 }
