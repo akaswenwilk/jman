@@ -126,3 +126,19 @@ func (a Arr) Get(path string) Result {
 		err:  err,
 	}
 }
+
+func (a Arr) MustString() string {
+	data, err := json.Marshal(a)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return string(data)
+}
+
+func (a Arr) MustBytes() []byte {
+	data, err := json.Marshal(a)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return data
+}

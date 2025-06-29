@@ -431,10 +431,8 @@ func TestObj_Get_IncorrectConversion(t *testing.T) {
  TODO:
 
 --- Helper Methods ---
-- add getter for Arr // with normalize
 - add setter for Obj // with normalize
 - add setter for Arr // with normalize
-- add muststring and mustbyte methods to Obj and Arr
 
 --- Docu ---
 - add godocs

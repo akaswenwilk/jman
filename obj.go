@@ -137,3 +137,19 @@ func (ob Obj) Get(path string) Result {
 		err:  err,
 	}
 }
+
+func (ob Obj) MustString() string {
+	data, err := json.Marshal(ob)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return string(data)
+}
+
+func (ob Obj) MustBytes() []byte {
+	data, err := json.Marshal(ob)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return data
+}
