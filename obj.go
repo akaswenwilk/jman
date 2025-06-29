@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"strings"
 )
 
 type Obj map[string]any
@@ -114,4 +115,25 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 	}
 
 	return diffs
+}
+
+func (ob Obj) Get(path string) Result {
+	if path == "" {
+		return Result{err: fmt.Errorf("path cannot be empty")}
+	}
+	paths := strings.Split(path, ".")
+	if paths[0] != "$" {
+		return Result{err: fmt.Errorf("path must start with '$', got '%s'", paths[0])}
+	}
+
+	ob, err := normalize(ob)
+	if err != nil {
+		return Result{err: fmt.Errorf("invalid json object: %w", err)}
+	}
+
+	val, err := getValue(paths[1:], ob)
+	return Result{
+		data: val,
+		err:  err,
+	}
 }

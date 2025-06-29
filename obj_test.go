@@ -266,7 +266,7 @@ func TestObj_Equal_Unequal_DifferentTypesSubObjArr(t *testing.T) {
 	err := expected.Equal(actual)
 	require.Error(t, err)
 	assert.EqualError(t, err, `expected not equal to actual:
-$.key1 expected object - got []interface {} ([subValue1])
+$.key1 expected object - got jman.Arr ([subValue1])
 `)
 }
 
@@ -343,6 +343,89 @@ func TestObj_Equal_Unequal_ManyDisplayPaths(t *testing.T) {
 	}
 }
 
+func TestObj_Get_String(t *testing.T) {
+	data := jman.Obj{"key1": "value1"}
+	value, err := data.Get("$.key1").String()
+	require.NoError(t, err)
+	assert.Equal(t, "value1", value)
+}
+
+func TestObj_Get_Number(t *testing.T) {
+	data := jman.Obj{"key1": 42}
+	value, err := data.Get("$.key1").Number()
+	require.NoError(t, err)
+	assert.Equal(t, float64(42), value)
+}
+
+func TestObj_Get_Bool(t *testing.T) {
+	data := jman.Obj{"key1": true}
+	value, err := data.Get("$.key1").Bool()
+	require.NoError(t, err)
+	assert.Equal(t, true, value)
+}
+
+func TestObj_Get_Obj(t *testing.T) {
+	data := jman.Obj{"key1": jman.Obj{"nestedKey": "nestedValue"}}
+	value, err := data.Get("$.key1").Obj()
+	require.NoError(t, err)
+	assert.Equal(t, jman.Obj{"nestedKey": "nestedValue"}, value)
+}
+
+func TestObj_Get_Arr(t *testing.T) {
+	data := jman.Obj{"key1": jman.Arr{"item1", "item2"}}
+	value, err := data.Get("$.key1").Arr()
+	require.NoError(t, err)
+	assert.Equal(t, jman.Arr{"item1", "item2"}, value)
+}
+
+func TestObj_Get_NestedKey(t *testing.T) {
+	data := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey": "nestedValue",
+		},
+	}
+	value, err := data.Get("$.key1.nestedKey").String()
+	require.NoError(t, err)
+	assert.Equal(t, "nestedValue", value)
+}
+
+func TestObj_Get_NestedArrItem(t *testing.T) {
+	data := jman.Obj{
+		"key1": jman.Arr{
+			"item1",
+			jman.Obj{"nestedKey": "nestedValue"},
+			"item3",
+		},
+	}
+	value, err := data.Get("$.key1.1.nestedKey").String()
+	require.NoError(t, err)
+	assert.Equal(t, "nestedValue", value)
+}
+
+func TestObj_Get_ComplexPath(t *testing.T) {
+	data := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey1": jman.Arr{"item1", jman.Obj{"deepKey": "deepValue"}},
+		},
+	}
+	value, err := data.Get("$.key1.nestedKey1.1.deepKey").String()
+	require.NoError(t, err)
+	assert.Equal(t, "deepValue", value)
+}
+
+func TestObj_Get_PathNotFound(t *testing.T) {
+	data := jman.Obj{"key1": "value1"}
+	_, err := data.Get("$.key2").String()
+	require.Error(t, err)
+	assert.EqualError(t, err, "key 'key2' not found in object")
+}
+
+func TestObj_Get_IncorrectConversion(t *testing.T) {
+	data := jman.Obj{"key1": "value1"}
+	_, err := data.Get("$.key1").Number()
+	require.Error(t, err)
+	assert.EqualError(t, err, "result is not a number, got string")
+}
 
 /*
  TODO:

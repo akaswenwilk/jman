@@ -92,30 +92,26 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 			diff.diff = err.Error()
 			equal = false
 		}
-	case []any:
-		expectedArr := Arr(expectedTyped)
-		actualTyped, ok := actual.([]any)
+	case Arr:
+		actualTyped, ok := actual.(Arr)
 		if !ok {
 			diff.diff = fmt.Sprintf("expected array - got %T (%v)", actual, actual)
 			equal = false
 			break
 		}
-		actualArr := Arr(actualTyped)
-		diffs := compareArrays(path, expectedArr, actualArr, opts)
+		diffs := compareArrays(path, expectedTyped, actualTyped, opts)
 		if len(diffs) > 0 {
 			diff.subDiffs = diffs
 			equal = false
 		}
-	case map[string]any:
-		expectedObj := Obj(expectedTyped)
-		actualTyped, ok := actual.(map[string]any)
+	case Obj:
+		actualTyped, ok := actual.(Obj)
 		if !ok {
 			diff.diff = fmt.Sprintf("expected object - got %T (%v)", actual, actual)
 			equal = false
 			break
 		}
-		actualObj := Obj(actualTyped)
-		diffs := compareObjects(path, expectedObj, actualObj, opts)
+		diffs := compareObjects(path, expectedTyped, actualTyped, opts)
 		if len(diffs) > 0 {
 			diff.subDiffs = diffs
 			equal = false
