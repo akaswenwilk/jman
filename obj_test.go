@@ -427,12 +427,86 @@ func TestObj_Get_IncorrectConversion(t *testing.T) {
 	assert.EqualError(t, err, "result is not a number, got string")
 }
 
+func TestObj_Set_NewKey(t *testing.T) {
+	data := jman.Obj{"key1": "value1"}
+	err := data.Set("$.key2", "newValue")
+	require.NoError(t, err)
+
+	expected := jman.Obj{
+		"key1": "value1",
+		"key2": "newValue",
+	}
+	assert.Equal(t, expected, data)
+}
+
+func TestObj_Set_ExistingKey(t *testing.T) {
+	data := jman.Obj{"key1": "value1"}
+	err := data.Set("$.key1", "updatedValue")
+	require.NoError(t, err)
+
+	expected := jman.Obj{
+		"key1": "updatedValue",
+	}
+	assert.Equal(t, expected, data)
+}
+
+func TestObj_Set_NestedKey(t *testing.T) {
+	data := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey": "nestedValue",
+		},
+	}
+	err := data.Set("$.key1.nestedKey", "newNestedValue")
+	require.NoError(t, err)
+
+	expected := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey": "newNestedValue",
+		},
+	}
+	assert.Equal(t, expected, data)
+}
+
+func TestObj_Set_ComplexPath(t *testing.T) {
+	data := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey1": jman.Arr{"item1", jman.Obj{"deepKey": "deepValue"}},
+		},
+	}
+	err := data.Set("$.key1.nestedKey1.1.deepKey", "newDeepValue")
+	require.NoError(t, err)
+
+	expected := jman.Obj{
+		"key1": jman.Obj{
+			"nestedKey1": jman.Arr{"item1", jman.Obj{"deepKey": "newDeepValue"}},
+		},
+	}
+
+	assert.Equal(t, expected, data)
+}
+
+func TestObj_Set_Obj(t *testing.T) {
+	data := jman.Obj{}
+	err := data.Set("$.key1", jman.Obj{"nestedkey": "nestedValue"})
+	require.NoError(t, err)
+	expected := jman.Obj{
+		"key1": jman.Obj{"nestedkey": "nestedValue"},
+	}
+	assert.Equal(t, expected, data)
+}
+
+func TestObj_Set_GenericMap(t *testing.T) {
+	data := jman.Obj{}
+	err := data.Set("$.key1", map[string]any{"nestedkey": "nestedValue"})
+	require.NoError(t, err)
+	expected := jman.Obj{
+		"key1": jman.Obj{"nestedkey": "nestedValue"},
+	}
+	assert.Equal(t, expected, data)
+}
+
 /*
  TODO:
-
---- Helper Methods ---
-- add setter for Obj // with normalize
-- add setter for Arr // with normalize
 
 --- Docu ---
 - add godocs

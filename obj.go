@@ -153,3 +153,15 @@ func (ob Obj) MustBytes() []byte {
 	}
 	return data
 }
+
+func (o Obj) Set(path string, value any) error {
+	if err := setByPath(o, path, value); err != nil {
+		return err
+	}
+	normalizedO, err := normalize(o)
+	if err != nil {
+		return fmt.Errorf("invalid json object: %w", err)
+	}
+	maps.Copy(o, normalizedO)
+	return nil
+}

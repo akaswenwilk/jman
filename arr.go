@@ -142,3 +142,17 @@ func (a Arr) MustBytes() []byte {
 	}
 	return data
 }
+
+func (a Arr) Set(path string, value any) error {
+	if err := setByPath(a, path, value); err != nil {
+		return err
+	}
+
+	normalA, err := normalize(a)
+	if err != nil {
+		return fmt.Errorf("invalid json array: %w", err)
+	}
+	copy(a, normalA)
+
+	return nil
+}

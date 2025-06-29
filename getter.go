@@ -15,7 +15,7 @@ func getValue[R JSONEqual](paths []string, data R) (any, error) {
 	}
 	current := any(data)
 	for _, path := range paths {
-		if numberRegex.MatchString(path) {
+		if isIndex(path) {
 			index, _ := strconv.Atoi(path) // converting after checking regex, no need for error handling here
 			if arr, ok := current.(Arr); ok {
 				if index < 0 || index >= len(arr) {
@@ -38,4 +38,8 @@ func getValue[R JSONEqual](paths []string, data R) (any, error) {
 	}
 
 	return current, nil
+}
+
+func isIndex(segment string) bool {
+	return numberRegex.MatchString(segment)
 }
