@@ -80,18 +80,16 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 		_, exists := actual[k]
 		if !exists {
 			diffs = append(diffs, Difference{
-				prefix: Expected,
-				diff:   "missing key",
+				diff:   "not found in actual",
 				path:   k,
 			})
 		}
 	}
 
 	for k := range maps.Keys(actual) {
-		_, exists := actual[k]
+		_, exists := expected[k]
 		if !exists {
 			diffs = append(diffs, Difference{
-				prefix: Actual,
 				diff:   "unexpected key",
 				path:   k,
 			})

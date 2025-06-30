@@ -117,7 +117,7 @@ func compareValues(path string, expected, actual any, opts EqualOptions) (bool, 
 			equal = false
 		}
 	default:
-		diff.prefix = Expected
+		diff.path = path
 		diff.diff = fmt.Sprintf("unsupported type comparison for expected value %q", expectedTyped)
 		equal = false
 	}

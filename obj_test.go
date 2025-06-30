@@ -270,6 +270,68 @@ $.key1 expected object - got jman.Arr ([subValue1])
 `)
 }
 
+func TestObj_Equal_Unequal_MissingKeyFromActual(t *testing.T) {
+	expected := jman.Obj{
+		"key1": "value1",
+		"key2": "value2",
+	}
+	actual := jman.Obj{
+		"key1": "value1",
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.key2 not found in actual
+`)
+}
+
+func TestObj_Equal_Unequal_UnexpectedKeyInActual(t *testing.T) {
+	expected := jman.Obj{
+		"key1": "value1",
+	}
+	actual := jman.Obj{
+		"key1": "value1",
+		"key2": "value2", // unexpected key
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.key2 unexpected key
+`)
+}
+
+func TestObj_Equal_Unequal_TooFewItemsInArray(t *testing.T) {
+	expected := jman.Obj{
+		"items": jman.Arr{"item1", "item2", "item3"},
+	}
+	actual := jman.Obj{
+		"items": jman.Arr{"item1", "item2"}, // too few items
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.items expected 3 items - got 2 items
+`)
+}
+
+func TestObj_Equal_Unequal_TooManyItemsInArray(t *testing.T) {
+	expected := jman.Obj{
+		"items": jman.Arr{"item1", "item2"},
+	}
+	actual := jman.Obj{
+		"items": jman.Arr{"item1", "item2", "item3"}, // too many items
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.EqualError(t, err, `expected not equal to actual:
+$.items expected 2 items - got 3 items
+`)
+}
+
 func TestObj_Equal_Unequal_DisplayPath(t *testing.T) {
 	expected := jman.Obj{
 		"foo": jman.Obj{

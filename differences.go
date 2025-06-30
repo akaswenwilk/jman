@@ -2,7 +2,6 @@ package jman
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Differences []Difference
@@ -31,27 +30,15 @@ func (d Differences) HasKey(key string) bool {
 
 type Prefix string
 
-const (
-	Expected Prefix = "expected"
-	Actual   Prefix = "actual"
-	Both     Prefix = "$"
-)
-
 type Difference struct {
-	prefix   Prefix
 	diff     string
 	path     string
 	subDiffs Differences
 }
 
 func (d Difference) String() string {
-	var prefixes []string
-	if d.prefix != "" {
-		prefixes = append(prefixes, string(d.prefix))
+	if d.path[:2] != "$." {
+		return fmt.Sprintf("%s.%s %s", base, d.path, d.diff)
 	}
-	if d.path != "" {
-		prefixes = append(prefixes, d.path)
-	}
-	prefix := strings.Join(prefixes, ".")
-	return fmt.Sprintf("%s %s", prefix, d.diff)
+	return fmt.Sprintf("%s %s", d.path, d.diff)
 }

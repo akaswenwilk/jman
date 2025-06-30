@@ -54,8 +54,8 @@ func compareArrays(path string, expected, actual Arr, opts EqualOptions) Differe
 	var diffs Differences
 	if len(expected) != len(actual) {
 		diffs = append(diffs, Difference{
-			prefix: Expected,
-			diff:   fmt.Sprintf("expected %d items - got %d items", len(expected), len(actual)),
+			path: path,
+			diff: fmt.Sprintf("expected %d items - got %d items", len(expected), len(actual)),
 		})
 	}
 
@@ -81,7 +81,6 @@ func compareArraysIgnoreOrder(path string, expected, actual Arr, opts EqualOptio
 		}
 
 		d := Difference{
-			prefix: Expected,
 			path:   fmt.Sprintf("%s.%d", path, i),
 			diff:   "not found in actual",
 		}
