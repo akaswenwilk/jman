@@ -18,9 +18,9 @@ func (d Differences) Report() string {
 	return report
 }
 
-func (d Differences) HasKey(key string) bool {
+func (d Differences) HasPath(path string) bool {
 	for _, d := range d {
-		if d.path == key {
+		if d.path == path {
 			return true
 		}
 	}

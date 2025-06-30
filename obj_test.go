@@ -405,6 +405,36 @@ func TestObj_Equal_Unequal_ManyDisplayPaths(t *testing.T) {
 	}
 }
 
+func TestObj_Equal_Unequal_ManyObjectErrors(t *testing.T) {
+	expected := jman.Obj{
+		"key1": "value1",
+		"key2": jman.Obj{
+			"nestedKey1": "nestedValue1",
+			"nestedKey2": 42,
+			"nestedKey4": "unexpectedKey", // unexpected key
+		},
+	}
+	actual := jman.Obj{
+		"key3": "value3",
+		"key2": jman.Obj{
+			"nestedKey1": "nestedValue2", // different value1
+			"nestedKey2": "notANumber",  // different TestNewObj_UnsupportedType
+			"nestedKey3": true,           // unexpected key3
+		},
+	}
+
+	err := expected.Equal(actual)
+	require.Error(t, err)
+	assert.Equal(t, `expected not equal to actual:
+$.key1 not found in actual
+$.key3 unexpected key
+$.key2.nestedKey4 not found in actual
+$.key2.nestedKey3 unexpected key
+$.key2.nestedKey1 expected "nestedValue1" - actual "nestedValue2"
+$.key2.nestedKey2 expected 42 - actual "notANumber"
+`, err.Error())
+}
+
 func TestObj_Get_String(t *testing.T) {
 	data := jman.Obj{"key1": "value1"}
 	value, err := data.Get("$.key1").String()

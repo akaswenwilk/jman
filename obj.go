@@ -81,7 +81,7 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 		if !exists {
 			diffs = append(diffs, Difference{
 				diff:   "not found in actual",
-				path:   k,
+				path:   pathAndKey(path, k),
 			})
 		}
 	}
@@ -91,7 +91,7 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 		if !exists {
 			diffs = append(diffs, Difference{
 				diff:   "unexpected key",
-				path:   k,
+				path:   pathAndKey(path, k),
 			})
 		}
 	}
@@ -99,13 +99,13 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 	for key, expectedValue := range expected {
 		// we know that this key is not present on actual
 		// so we can skip
-		if diffs.HasKey(key) {
+		if diffs.HasPath(pathAndKey(path, key)) {
 			continue
 		}
 
 		actualValue := actual[key]
 
-		equal, diff := compareValues(fmt.Sprintf("%s.%s", path, key), expectedValue, actualValue, opts)
+		equal, diff := compareValues(pathAndKey(path, key), expectedValue, actualValue, opts)
 		if equal {
 			continue
 		}
@@ -113,6 +113,10 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 	}
 
 	return diffs
+}
+
+func pathAndKey(path, key string) string {
+	return fmt.Sprintf("%s.%s", path, key)
 }
 
 func (ob Obj) Get(path string) Result {
