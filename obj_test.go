@@ -596,14 +596,3 @@ func TestObj_Set_GenericMap(t *testing.T) {
 	}
 	assert.Equal(t, expected, data)
 }
-
-/*
- TODO:
-
---- Docu ---
-- add godocs
-- update readme
-- add note that whatever is passed in as expected must be convertible into valid json as an array or object
-- fix the TOC
-- note that the dot notation must start with $
-*/
