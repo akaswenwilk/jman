@@ -1,10 +1,5 @@
 package jman
 
-import (
-	"errors"
-	"regexp"
-)
-
 const base = "$"
 
 type OptsFunc func(o *EqualOptions)
@@ -14,16 +9,15 @@ type EqualOptions struct {
 	ignoreArrayOrder []string
 }
 
-var pathStartRegex = regexp.MustCompile(`^\$\.`)
-
 func (o EqualOptions) valid() error {
 	if len(o.ignoreArrayOrder) == 0 {
 		return nil
 	}
 
 	for _, key := range o.ignoreArrayOrder {
-		if key == "" || !pathStartRegex.MatchString(key) {
-			return errors.New("key for ignoring array order must start with " + base)
+		_, err := getPathParts(key)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

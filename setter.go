@@ -3,39 +3,42 @@ package jman
 import (
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 func setByPath(data any, path string, value any) error {
-	if !strings.HasPrefix(path, "$.") {
-		return fmt.Errorf("invalid path: must start with $.")
+	paths, err := getPathParts(path)
+	if err != nil {
+		return err
 	}
-	segments := strings.Split(path[2:], ".")
+
 	current := data
 
-	for i, segment := range segments {
-		isLast := i == len(segments)-1
+	for i, p := range paths { // skip the base part
+		if p == base {
+			continue
+		}
+		isLast := i == len(paths)-1
 
 		switch curr := current.(type) {
 		case Obj:
 			if isLast {
-				curr[segment] = value
+				curr[p] = value
 				return nil
 			}
-			next, ok := curr[segment]
+			next, ok := curr[p]
 			if !ok {
-				if isIndex(segments[i+1]) {
-					curr[segment] = Arr{}
+				if isIndex(paths[i+1]) {
+					curr[p] = Arr{}
 				} else {
-					curr[segment] = Obj{}
+					curr[p] = Obj{}
 				}
-				next = curr[segment]
+				next = curr[p]
 			}
 			current = next
 		case Arr:
-			idx, err := strconv.Atoi(segment)
+			idx, err := strconv.Atoi(p)
 			if err != nil || idx < 0 {
-				return fmt.Errorf("invalid array index: %s", segment)
+				return fmt.Errorf("invalid array index: %s", p)
 			}
 			for len(curr) <= idx {
 				curr = append(curr, nil)
@@ -45,7 +48,7 @@ func setByPath(data any, path string, value any) error {
 				return nil
 			}
 			if curr[idx] == nil {
-				if isIndex(segments[i+1]) {
+				if isIndex(paths[i+1]) {
 					curr[idx] = Arr{}
 				} else {
 					curr[idx] = Obj{}
@@ -57,7 +60,7 @@ func setByPath(data any, path string, value any) error {
 				current = Arr(parent)
 			}
 		default:
-			return fmt.Errorf("unexpected type at segment %s", segment)
+			return fmt.Errorf("unexpected type at segment %s", p)
 		}
 	}
 	return nil

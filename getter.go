@@ -9,12 +9,20 @@ import (
 
 var numberRegex = regexp.MustCompile(`^\d+$`)
 
-func getValue[R JSONEqual](paths []string, data R) (any, error) {
+func getValue[R JSONEqual](path string, data R) (any, error) {
+	paths, err := getPathParts(path)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no path segments provided")
 	}
 	current := any(data)
 	for _, path := range paths {
+		if path == base {
+			continue
+		}
 		if isIndex(path) {
 			index, _ := strconv.Atoi(path) // converting after checking regex, no need for error handling here
 			if arr, ok := current.(Arr); ok {

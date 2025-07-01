@@ -241,7 +241,7 @@ func TestObj_Equal_IgnoreArrayOrder_IncorrectPathStart(t *testing.T) {
 		jman.WithIgnoreArrayOrder("items"),
 	)
 	assert.Error(t, err)
-	assert.EqualError(t, err, "invalid options: key for ignoring array order must start with $")
+	assert.EqualError(t, err, "invalid options: path must start with $")
 }
 
 func TestObj_Equal_Unequal_DifferentTypes(t *testing.T) {
