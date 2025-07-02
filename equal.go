@@ -26,21 +26,19 @@ type JSONEqual interface {
 func New[T JSONEqual](data any) (T, error) {
 	var result T
 
-	switch data.(type) {
+	switch d := data.(type) {
 	case string:
-		d := data.(string)
 		if err := json.Unmarshal([]byte(d), &result); err != nil {
 			return result, fmt.Errorf("%w %s: %w", ErrJSONParse, data, err)
 		}
 	case []byte:
-		d := data.([]byte)
 		if err := json.Unmarshal(d, &result); err != nil {
 			return result, fmt.Errorf("%w %s: %w", ErrJSONParse, string(d), err)
 		}
 	case T:
 		// If the data is already of type T, we can normalize it and return it directly
 		var err error
-		result, err = normalize(data.(T))
+		result, err = normalize(d)
 		if err != nil {
 			return result, fmt.Errorf("%w: %w", ErrNormalize, err)
 		}
