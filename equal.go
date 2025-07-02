@@ -13,10 +13,16 @@ var (
 	ErrUnsupportedType = errors.New("unsupported type for JSON data, use either string or []byte")
 )
 
+// JSONEqual is an interface that defines a method for comparing JSON objects.
+// It requires the implementation to provide an Equal method that checks interface
+// equality between two JSON objects, allowing for custom options via OptsFunc.
 type JSONEqual interface {
-	Equal(other any, optFuncs ...OptsFunc) error
+	Equal(other any, optFuncs ...optsFunc) error
 }
 
+// New creates a new instance of type T from the provided data.
+// The data can be a JSON string, a byte slice, or an instance of type T.
+// It returns an error if the data cannot be parsed or normalized into type T.
 func New[T JSONEqual](data any) (T, error) {
 	var result T
 
@@ -60,9 +66,9 @@ func normalize[T JSONEqual](data T) (T, error) {
 	return normalized, nil
 }
 
-func compareValues(path string, expected, actual any, opts EqualOptions) (bool, Difference) {
+func compareValues(path string, expected, actual any, opts equalOptions) (bool, difference) {
 	var (
-		diff = Difference{
+		diff = difference{
 			path: path,
 		}
 		equal = true

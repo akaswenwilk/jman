@@ -7,8 +7,12 @@ import (
 	"maps"
 )
 
+// Obj represents a JSON object. It implements the Equaler interface for deep equality checks.
 type Obj map[string]any
 
+// UnmarshalJSON implements the json.Unmarshaler interface for Obj. Any nested fields with values of type []any or map[string]any
+// will be converted to Arr or Obj, and other simple types will be converted to their
+// corresponding types (bool, string, float64).
 func (o *Obj) UnmarshalJSON(data []byte) error {
 	raw := map[string]any{}
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -41,8 +45,9 @@ func convert(v any) any {
 	}
 }
 
-func (ob Obj) Equal(other any, optFuncs ...OptsFunc) error {
-	opts := EqualOptions{}
+// Equal checks if the Obj is equal to another value, which can be either a JSON string, byte slice, or another Obj.
+func (ob Obj) Equal(other any, optFuncs ...optsFunc) error {
+	opts := equalOptions{}
 
 	for _, o := range optFuncs {
 		o(&opts)
@@ -67,20 +72,20 @@ func (ob Obj) Equal(other any, optFuncs ...OptsFunc) error {
 
 	differences := compareObjects(base, ob, act, opts)
 	if len(differences) > 0 {
-		return fmt.Errorf("expected not equal to actual:\n%s", differences.Report())
+		return fmt.Errorf("expected not equal to actual:\n%s", differences.report())
 	}
 
 	return nil
 }
 
-func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differences {
-	var diffs Differences
+func compareObjects(path string, expected, actual Obj, opts equalOptions) differences {
+	var diffs differences
 	for k := range maps.Keys(expected) {
 		_, exists := actual[k]
 		if !exists {
-			diffs = append(diffs, Difference{
-				diff:   "not found in actual",
-				path:   pathAndKey(path, k),
+			diffs = append(diffs, difference{
+				diff: "not found in actual",
+				path: pathAndKey(path, k),
 			})
 		}
 	}
@@ -88,9 +93,9 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 	for k := range maps.Keys(actual) {
 		_, exists := expected[k]
 		if !exists {
-			diffs = append(diffs, Difference{
-				diff:   "unexpected key",
-				path:   pathAndKey(path, k),
+			diffs = append(diffs, difference{
+				diff: "unexpected key",
+				path: pathAndKey(path, k),
 			})
 		}
 	}
@@ -98,7 +103,7 @@ func compareObjects(path string, expected, actual Obj, opts EqualOptions) Differ
 	for key, expectedValue := range expected {
 		// we know that this key is not present on actual
 		// so we can skip
-		if diffs.HasPath(pathAndKey(path, key)) {
+		if diffs.hasPath(pathAndKey(path, key)) {
 			continue
 		}
 
@@ -118,6 +123,10 @@ func pathAndKey(path, key string) string {
 	return fmt.Sprintf("%s.%s", path, key)
 }
 
+// Get retrieves a value from the Obj at the specified path.
+// The path is a JSONPath-like string that specifies the location of the value.
+// If the path is invalid or the value cannot be retrieved, it returns a Result with an error.
+// If the path is valid, it returns a Result containing the value.
 func (ob Obj) Get(path string) Result {
 	ob, err := normalize(ob)
 	if err != nil {
@@ -131,6 +140,8 @@ func (ob Obj) Get(path string) Result {
 	}
 }
 
+// MustString returns the JSON representation of the Obj as a string.
+// It panics if the marshaling fails.
 func (ob Obj) MustString() string {
 	data, err := json.Marshal(ob)
 	if err != nil {
@@ -139,6 +150,8 @@ func (ob Obj) MustString() string {
 	return string(data)
 }
 
+// MustBytes returns the JSON representation of the Obj as a byte slice.
+// It panics if the marshaling fails.
 func (ob Obj) MustBytes() []byte {
 	data, err := json.Marshal(ob)
 	if err != nil {
@@ -147,6 +160,14 @@ func (ob Obj) MustBytes() []byte {
 	return data
 }
 
+// Set sets a value at the specified path in the Obj.
+// The path is a JSONPath-like string that specifies the location of the value.
+// If the path is invalid or the value cannot be set, it returns an error.
+// After setting the value, it normalizes the Arr to ensure it is valid JSON.
+// If normalization fails, it returns an error indicating the invalid JSON array.
+// If successful, it updates the Arr in place.
+// The value can be of any type, but it will be normalized to one of the supported JSON types:
+// bool, string, float64, Obj, or Arr.
 func (o Obj) Set(path string, value any) error {
 	if err := setByPath(o, path, value); err != nil {
 		return err

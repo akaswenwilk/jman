@@ -2,14 +2,14 @@ package jman
 
 const base = "$"
 
-type OptsFunc func(o *EqualOptions)
+type optsFunc func(o *equalOptions)
 
-type EqualOptions struct {
+type equalOptions struct {
 	matchers         Matchers
 	ignoreArrayOrder []string
 }
 
-func (o EqualOptions) valid() error {
+func (o equalOptions) valid() error {
 	if len(o.ignoreArrayOrder) == 0 {
 		return nil
 	}
@@ -23,22 +23,28 @@ func (o EqualOptions) valid() error {
 	return nil
 }
 
-func WithMatchers(matchers ...Matcher) OptsFunc {
-	return func(o *EqualOptions) {
+// WithMatchers allows you to add matchers to the comparison options.
+func WithMatchers(matchers ...Matcher) optsFunc {
+	return func(o *equalOptions) {
 		for _, m := range matchers {
 			o.matchers = append(o.matchers, m)
 		}
 	}
 }
 
-func WithDefaultMatchers(matchers Matchers) OptsFunc {
-	return func(o *EqualOptions) {
+// WithDefaultMatchers allows you to set the default matchers for the comparison options.
+// Useful if defining a set of matchers that should be used in most comparisons.
+func WithDefaultMatchers(matchers Matchers) optsFunc {
+	return func(o *equalOptions) {
 		o.matchers = matchers
 	}
 }
 
-func WithIgnoreArrayOrder(keys ...string) OptsFunc {
-	return func(o *EqualOptions) {
+// WithIgnoreArrayOrder allows you to specify keys for which the order of array elements should be ignored during comparison.
+// each key should be a valid JSON path, and the order of elements in arrays at those paths will not be considered during comparison.
+// the path must start with $.  For ignoring order of the base array, use "$" as the key.
+func WithIgnoreArrayOrder(keys ...string) optsFunc {
+	return func(o *equalOptions) {
 		o.ignoreArrayOrder = append(o.ignoreArrayOrder, keys...)
 	}
 }

@@ -4,13 +4,13 @@ import (
 	"fmt"
 )
 
-type Differences []Difference
+type differences []difference
 
-func (d Differences) Report() string {
+func (d differences) report() string {
 	var report string
 	for _, diff := range d {
 		if diff.diff == "" {
-			report += diff.subDiffs.Report()
+			report += diff.subDiffs.report()
 		} else {
 			report += fmt.Sprintf("%s\n", diff.String())
 		}
@@ -18,7 +18,7 @@ func (d Differences) Report() string {
 	return report
 }
 
-func (d Differences) HasPath(path string) bool {
+func (d differences) hasPath(path string) bool {
 	for _, d := range d {
 		if d.path == path {
 			return true
@@ -28,15 +28,13 @@ func (d Differences) HasPath(path string) bool {
 	return false
 }
 
-type Prefix string
-
-type Difference struct {
+type difference struct {
 	diff     string
 	path     string
-	subDiffs Differences
+	subDiffs differences
 }
 
-func (d Difference) String() string {
+func (d difference) String() string {
 	if d.path[:2] != "$." {
 		return fmt.Sprintf("%s.%s %s", base, d.path, d.diff)
 	}
