@@ -17,36 +17,36 @@ var (
 // It requires the implementation to provide an Equal method that checks interface
 // equality between two JSON objects, allowing for custom options via OptsFunc.
 type JSONEqual interface {
-	Equal(other any, optFuncs ...optsFunc) error
+	Equal(t T, other any, optFuncs ...optsFunc)
 }
 
 // New creates a new instance of type T from the provided data.
 // The data can be a JSON string, a byte slice, or an instance of type T.
 // It returns an error if the data cannot be parsed or normalized into type T.
-func New[T JSONEqual](data any) (T, error) {
-	var result T
+func New[E JSONEqual](t T, data any) E {
+	var result E
 
 	switch d := data.(type) {
 	case string:
 		if err := json.Unmarshal([]byte(d), &result); err != nil {
-			return result, fmt.Errorf("%w %s: %w", ErrJSONParse, data, err)
+			t.Fatalf(fmt.Sprintf("%v %s: %v", ErrJSONParse, d, err))
 		}
 	case []byte:
 		if err := json.Unmarshal(d, &result); err != nil {
-			return result, fmt.Errorf("%w %s: %w", ErrJSONParse, string(d), err)
+			t.Fatalf(fmt.Sprintf("%v %s: %v", ErrJSONParse, string(d), err))
 		}
-	case T:
+	case E:
 		// If the data is already of type T, we can normalize it and return it directly
 		var err error
 		result, err = normalize(d)
 		if err != nil {
-			return result, fmt.Errorf("%w: %w", ErrNormalize, err)
+			t.Fatalf(fmt.Sprintf("%v %T: %v", ErrNormalize, d, err))
 		}
 	default:
-		return result, fmt.Errorf("%T %w", data, ErrUnsupportedType)
+		t.Fatalf(fmt.Sprintf("%T %s", data, ErrUnsupportedType))
 	}
 
-	return result, nil
+	return result
 }
 
 func normalize[T JSONEqual](data T) (T, error) {

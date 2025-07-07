@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+type T interface {
+	Fatalf(msg string, args ...any)
+}
+
 func getPathParts(path string) ([]string, error) {
 	if path == "" {
 		return nil, errors.New("path cannot be empty")

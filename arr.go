@@ -27,7 +27,7 @@ func (a *Arr) UnmarshalJSON(data []byte) error {
 // Equal checks if the Arr is equal to another value, which can be either a JSON string, byte slice, or another Arr.
 // It uses the provided options to customize the equality check, such as ignoring array order.
 // If the actual value is not a valid JSON array, it returns an error.
-func (a Arr) Equal(other any, optFuncs ...optsFunc) error {
+func (a Arr) Equal(t T, other any, optFuncs ...optsFunc) {
 	opts := equalOptions{}
 
 	for _, o := range optFuncs {
@@ -35,25 +35,34 @@ func (a Arr) Equal(other any, optFuncs ...optsFunc) error {
 	}
 
 	if err := opts.valid(); err != nil {
-		return fmt.Errorf("invalid options: %w", err)
+		t.Fatalf(fmt.Sprintf("invalid options: %v", err))
 	}
 
-	act, err := New[Arr](other)
+	// check if other value is an array
+	switch v := other.(type) {
+	case string:
+		if v[0] == '{' {
+			t.Fatalf("can't compare array with json object")
+		}
+	case []byte:
+		if v[0] == '{' {
+			t.Fatalf("can't compare array with json object")
+		}
+	case Obj:
+		t.Fatalf("can't compare array with json object")
+	}
+
+	act := New[Arr](t, other)
+
+	a, err := normalize(a)
 	if err != nil {
-		return fmt.Errorf("invalid actual: %w", err)
+		t.Fatalf(fmt.Sprintf("expected is invalid json: %v", err))
 	}
 
-	a, err = normalize(a)
-	if err != nil {
-		return fmt.Errorf("expected is invalid json: %w", err)
+	diffs := compareArrays(base, a, act, opts)
+	if len(diffs) > 0 {
+		t.Fatalf(fmt.Sprintf("expected not equal to actual:\n%s", diffs.report()))
 	}
-
-	differences := compareArrays(base, a, act, opts)
-	if len(differences) > 0 {
-		return fmt.Errorf("expected not equal to actual:\n%s", differences.report())
-	}
-
-	return nil
 }
 
 func compareArrays(path string, expected, actual Arr, opts equalOptions) differences {
@@ -110,61 +119,108 @@ func compareArraysStrictOrder(path string, expected, actual Arr, opts equalOptio
 	return diffs
 }
 
-// Get retrieves a value from the Arr at the specified path.
-// The path is a JSONPath-like string that specifies the location of the value.
-// If the path is invalid or the value cannot be retrieved, it returns a Result with an error.
-// If the path is valid, it returns a Result containing the value.
-func (a Arr) Get(path string) Result {
-	a, err := normalize(a)
-	if err != nil {
-		return Result{err: fmt.Errorf("expected is invalid json: %w", err)}
-	}
-
-	val, err := getValue(path, a)
-	return Result{
-		data: val,
-		err:  err,
-	}
-}
-
-// MustString returns the JSON representation of the Arr as a string.
-// It panics if there is an error during marshaling.
-func (a Arr) MustString() string {
+// String returns the JSON representation of the Arr as a string.
+// It fails if there is an error during marshaling.
+func (a Arr) String(t T) string {
 	data, err := json.Marshal(a)
 	if err != nil {
-		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+		t.Fatalf(fmt.Sprintf("error marshaling JSON object: %v", err))
 	}
 	return string(data)
 }
 
-// MustBytes returns the JSON representation of the Arr as a byte slice.
-// It panics if there is an error during marshaling.
-func (a Arr) MustBytes() []byte {
+// Bytes returns the JSON representation of the Arr as a byte slice.
+// It fails if there is an error during marshaling.
+func (a Arr) MustBytes(t T) []byte {
 	data, err := json.Marshal(a)
 	if err != nil {
-		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+		t.Fatalf(fmt.Sprintf("error marshaling JSON object: %v", err))
 	}
 	return data
 }
 
+// Get retrieves a value from the Arr at the specified path.
+// The path is a JSONPath-like string that specifies the location of the value.
+// If the path is invalid or the value cannot be retrieved, it calls t.Fatal
+func (a Arr) Get(t T, path string) any {
+	normed, err := normalize(a)
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("err normalizing arr: %v", err))
+	}
+	val, err := getValue(path, normed)
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("failed to get value at path '%s': %v", path, err))
+	}
+
+	return val
+}
+
+// GetString functions like Get but attempts to convert to string. Fails if the value at the path is not a string.
+func (a Arr) GetString(t T, path string) string {
+	val := a.Get(t, path)
+	if str, ok := val.(string); ok {
+		return str
+	}
+	t.Fatalf(fmt.Sprintf("expected string at path '%s', got %T", path, val))
+	return ""
+}
+
+// GetNumber functions like Get but attempts to convert to float64. Fails if the value at the path is not a number.
+func (a Arr) GetNumber(t T, path string) float64 {
+	val := a.Get(t, path)
+	if num, ok := val.(float64); ok {
+		return num
+	}
+	t.Fatalf(fmt.Sprintf("expected number at path '%s', got %T", path, val))
+	return 0
+}
+
+// GetBool functions like Get but attempts to convert to bool. Fails if the value at the path is not a boolean.
+func (a Arr) GetBool(t T, path string) bool {
+	val := a.Get(t, path)
+	if b, ok := val.(bool); ok {
+		return b
+	}
+	t.Fatalf(fmt.Sprintf("expected bool at path '%s', got %T", path, val))
+	return false
+}
+
+// GetArray functions like Get but attempts to convert to Arr. Fails if the value at the path is not an array.
+func (a Arr) GetArray(t T, path string) Arr {
+	val := a.Get(t, path)
+	if arr, ok := val.(Arr); ok {
+		return arr
+	}
+	t.Fatalf(fmt.Sprintf("expected array at path '%s', got %T", path, val))
+	return nil
+}
+
+// GetObject functions like Get but attempts to convert to Obj. Fails if the value at the path is not an object.
+func (a Arr) GetObject(t T, path string) Obj {
+	val := a.Get(t, path)
+	if obj, ok := val.(Obj); ok {
+		return obj
+	}
+	t.Fatalf(fmt.Sprintf("expected object at path '%s', got %T", path, val))
+	return nil
+}
+
 // Set sets a value at the specified path in the Arr.
 // The path is a JSONPath-like string that specifies the location of the value.
-// If the path is invalid or the value cannot be set, it returns an error.
+// If the path is invalid or the value cannot be set, it fails.
 // After setting the value, it normalizes the Arr to ensure it is valid JSON.
-// If normalization fails, it returns an error indicating the invalid JSON array.
+// If normalization fails, it calls Fatalf on T.
 // If successful, it updates the Arr in place.
 // The value can be of any type, but it will be normalized to one of the supported JSON types:
 // bool, string, float64, Obj, or Arr.
-func (a Arr) Set(path string, value any) error {
+func (a Arr) Set(t T, path string, value any) {
 	if err := setByPath(a, path, value); err != nil {
-		return err
+		t.Fatalf(err.Error())
 	}
 
 	normalA, err := normalize(a)
 	if err != nil {
-		return fmt.Errorf("invalid json array: %w", err)
+		t.Fatalf(fmt.Sprintf("invalid json array: %v", err))
 	}
 	copy(a, normalA)
-
-	return nil
 }

@@ -6,6 +6,9 @@
 //   • Obj — JSON object implemented as `map[string]any`.
 //   • Arr — JSON array implemented as `[]any`.
 //
+// # Testing Interface
+//   • T — interface for testing, e.g. `*testing.T`. Only Implements Fatalf() method.
+//
 // Both types satisfy the JSONEqual interface and can be created:
 //
 //   // Literal
@@ -13,23 +16,22 @@
 //   tags := jman.Arr{"go", "test", 42}
 //
 //   // Parse / normalise
-//   user, _ := jman.New[jman.Obj](`{"id":1,"name":"alice"}`)
-//   tags, _ := jman.New[jman.Arr]([]byte(`["go","test",42]`))
+//   user := jman.New[jman.Obj](t, `{"id":1,"name":"alice"}`)
+//   tags := jman.New[jman.Arr](t, []byte(`["go","test",42]`))
 //
 // # Path-based Getters & Setters
 //
 // Paths use JSON-Path–like dot syntax and must start with `$`.
 //
-//   id, _ := user.Get("$.id").Number()
-//   _     = user.Set("$.settings.theme", "dark")
-//   _     = tags.Set("$.1", "unit")
+//   id := user.GetNumber(t, "$.id")
+//   user.Set(t, "$.settings.theme", "dark")
+//   tags.Set(t, "$.1", "unit")
 //
-// Getter returns a Result that can be converted with:
-//  
+// There are diffferent getters for each type expected to be returned
+//
 // Setter can set any type as a value, however the value will be normalized into either:
 // bool, string, float64, Obj, or Arr.
 //
-//   String(), Number(), Bool(), Obj(), Arr()
 //
 // # Deep Equality
 //
@@ -52,16 +54,13 @@
 //         {"street":"Low","no":9}
 //       ]}`
 //
-//   err := expected.Equal(actual,
+//   expected.Equal(t, actual,
 //       jman.WithIgnoreArrayOrder("$.roles", "$.addresses"),
 //       jman.WithDefaultMatchers(jman.Matchers{
 //           jman.IsUUID("{{uuid}}"),
 //           jman.NotEmpty("{{nonEmpty}}"),
 //       }),
 //   )
-//   if err != nil {
-//       fmt.Println(err) // human-readable diff
-//   }
 //
 // # Inequality Report
 //

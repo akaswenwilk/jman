@@ -2,6 +2,7 @@ package jman
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 )
 
@@ -63,5 +64,21 @@ func setByPath(data any, path string, value any) error {
 			return fmt.Errorf("unexpected type at segment %s", p)
 		}
 	}
+
+	switch v := data.(type) {
+	case Obj:
+		normalized, err := normalize(v)
+		if err != nil {
+			return err
+		}
+		maps.Copy(v, normalized)
+	case Arr:
+		normalized, err := normalize(v)
+		if err != nil {
+			return err
+		}
+		copy(v, normalized)
+	}
+
 	return nil
 }
