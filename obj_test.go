@@ -70,7 +70,7 @@ func TestNewObj_UnsupportedType(t *testing.T) {
 }
 
 func TestNewObj_InvalidJSON(t *testing.T) {
-	mt := newMockT("error parsing JSON data {\"key1\": \"value1\", \"key2\": 2, \"key3\": true,: unexpected end of JSON input")
+	mt := newMockT(`error parsing JSON data {"key1": "value1", "key2": 2, "key3": true,: unexpected end of JSON input`)
 	defer mt.AssertExpectations(t)
 	data := `{"key1": "value1", "key2": 2, "key3": true,` // invalid JSON
 	assert.Panics(t, func() { jman.New[jman.Obj](mt, data) })
@@ -277,6 +277,9 @@ func TestObj_Equal_IgnoreArrayOrder_IncorrectPathStart(t *testing.T) {
 
 func TestObj_Equal_Unequal_DifferentTypes(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"key":"value"}
+actual {"key":123}
+
 $.key expected "value" - actual 123
 `)
 	defer mt.AssertExpectations(t)
@@ -288,6 +291,9 @@ $.key expected "value" - actual 123
 
 func TestObj_Equal_Unequal_DifferentTypesSubObjArr(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"key1":{"subKey1":"subValue1"}}
+actual {"key1":["subValue1"]}
+
 $.key1 expected object - got jman.Arr ([subValue1])
 `)
 	defer mt.AssertExpectations(t)
@@ -303,6 +309,9 @@ $.key1 expected object - got jman.Arr ([subValue1])
 
 func TestObj_Equal_Unequal_MissingKeyFromActual(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"key1":"value1","key2":"value2"}
+actual {"key1":"value1"}
+
 $.key2 not found in actual
 `)
 	defer mt.AssertExpectations(t)
@@ -319,6 +328,9 @@ $.key2 not found in actual
 
 func TestObj_Equal_Unequal_UnexpectedKeyInActual(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"key1":"value1"}
+actual {"key1":"value1","key2":"value2"}
+
 $.key2 unexpected key
 `)
 	defer mt.AssertExpectations(t)
@@ -335,6 +347,9 @@ $.key2 unexpected key
 
 func TestObj_Equal_Unequal_TooFewItemsInArray(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"items":["item1","item2","item3"]}
+actual {"items":["item1","item2"]}
+
 $.items expected 3 items - got 2 items
 `)
 	defer mt.AssertExpectations(t)
@@ -350,6 +365,9 @@ $.items expected 3 items - got 2 items
 
 func TestObj_Equal_Unequal_TooManyItemsInArray(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"items":["item1","item2"]}
+actual {"items":["item1","item2","item3"]}
+
 $.items expected 2 items - got 3 items
 `)
 	defer mt.AssertExpectations(t)
@@ -365,6 +383,9 @@ $.items expected 2 items - got 3 items
 
 func TestObj_Equal_Unequal_DisplayPath(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"foo":{"bar":["hello",{"baz":"quux"}]}}
+actual {"foo":{"bar":["hello",{"baz":"quant"}]}}
+
 $.foo.bar.1.baz expected "quux" - actual "quant"
 `)
 	defer mt.AssertExpectations(t)
@@ -394,6 +415,9 @@ $.foo.bar.1.baz expected "quux" - actual "quant"
 
 func TestObj_Equal_Unequal_ManyDisplayPaths(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected ["hello",{"baz":[{"key":"value"},"quux"],"foo":"bar"},"world",[1,2,false,null]]
+actual ["HELLO",{"baz":[{"key":"VALUE"},"QUUX"],"foo":"BAR"},"WORLD",[null,2,1,false]]
+
 $.0 expected "hello" - actual "HELLO"
 $.1.baz.0.key expected "value" - actual "VALUE"
 $.1.baz.1 expected "quux" - actual "QUUX"
@@ -433,6 +457,9 @@ $.3.3 expected <nil> - actual false
 
 func TestObj_Equal_Unequal_ManyObjectErrors(t *testing.T) {
 	mt := newMockT(`expected not equal to actual:
+expected {"key1":"value1","key2":{"nestedKey1":"nestedValue1","nestedKey2":42,"nestedKey4":"unexpectedKey"}}
+actual {"key2":{"nestedKey1":"nestedValue2","nestedKey2":"notANumber","nestedKey3":true},"key3":"value3"}
+
 $.key1 not found in actual
 $.key3 unexpected key
 $.key2.nestedKey4 not found in actual

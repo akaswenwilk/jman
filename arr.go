@@ -61,7 +61,7 @@ func (a Arr) Equal(t T, other any, optFuncs ...optsFunc) {
 
 	diffs := compareArrays(base, a, act, opts)
 	if len(diffs) > 0 {
-		t.Fatalf(fmt.Sprintf("expected not equal to actual:\n%s", diffs.report()))
+		t.Fatalf(fmt.Sprintf("expected not equal to actual:\nexpected %s\nactual %s\n\n%s", a.String(t), act.String(t), diffs.report()))
 	}
 }
 

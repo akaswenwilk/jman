@@ -80,7 +80,7 @@ func (ob Obj) Equal(t T, other any, optFuncs ...optsFunc) {
 
 	diffs := compareObjects(base, ob, act, opts)
 	if len(diffs) > 0 {
-		t.Fatalf(fmt.Sprintf("expected not equal to actual:\n%s", diffs.report()))
+		t.Fatalf(fmt.Sprintf("expected not equal to actual:\nexpected %s\nactual %s\n\n%s", ob.String(t), act.String(t), diffs.report()))
 	}
 }
 
