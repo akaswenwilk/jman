@@ -139,12 +139,33 @@ func (ob Obj) String(t T) string {
 	return string(data)
 }
 
+// MustString returns the JSON representation of the Obj as a string.
+// It panics if the marshaling fails, which is useful for tests where you want to
+func (ob Obj) MustString() string {
+	data, err := json.Marshal(ob)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return string(data)
+}
+
 // Bytes returns the JSON representation of the Obj as a byte slice.
 // It fails if the marshaling fails.
 func (ob Obj) Bytes(t T) []byte {
 	data, err := json.Marshal(ob)
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("error marshaling JSON object: %v", err))
+	}
+	return data
+}
+
+// MustBytes returns the JSON representation of the Obj as a byte slice.
+// It panics if the marshaling fails, which is useful for tests where you want to
+// ensure the JSON is valid without handling errors.
+func (ob Obj) MustBytes() []byte {
+	data, err := json.Marshal(ob)
+	if err != nil {
+		panic(fmt.Sprintf("error marshaling JSON object: %v", err))
 	}
 	return data
 }
