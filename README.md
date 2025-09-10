@@ -50,8 +50,8 @@ func TestExample(t *testing.T) {
     }
     actual := `{"bas":123, "foo":"bar", "id": "d47422ff-683a-4077-b3eb-e06a99bc9b55"}`
 
-    expected.Equal(t, actual, jman.WithMatcher(
-            jman.NotEmpty("ANY$"),
+    expected.Equal(t, actual, jman.WithMatchers(
+            jman.NotEmpty("$ANY"),
             jman.IsUUID("$UUID"),
         ),
     )
@@ -63,7 +63,24 @@ func TestExample(t *testing.T) {
 
 ### Basic Models
 
-jman is built around two structs: `jman.Obj` and `jman.Arr`, corresponding to `map[string]any` and `[]any`.  They then have helper methods to manipulate and compare with each other.  Whenever using any of the methods to generate, edit, fetch, or compare values, they will be "normalized".  Since go by default will unmarshal into specific value (I.E. any number will be unmarshalled into a float), it can get pretty annoying to ensure that you have specified the correct value in an array or object.  Therefore the normalization will ensure correctness of value.  So instead of having to do this:
+jman is built around two structs: `jman.Obj` and `jman.Arr`, corresponding to `map[string]any` and `[]any`. They then have helper methods to manipulate and compare with each other. 
+
+You can create instances directly or use the `New` function to create them from JSON strings, byte slices, or existing instances:
+
+```go
+// Create directly
+obj := jman.Obj{"key": "value"}
+arr := jman.Arr{"item1", "item2"}
+
+// Create from JSON string
+obj := jman.New[jman.Obj](t, `{"key": "value"}`)
+arr := jman.New[jman.Arr](t, `["item1", "item2"]`)
+
+// Create from byte slice
+obj := jman.New[jman.Obj](t, []byte(`{"key": "value"}`))
+```
+
+Whenever using any of the methods to generate, edit, fetch, or compare values, they will be "normalized". Since go by default will unmarshal into specific value (I.E. any number will be unmarshalled into a float), it can get pretty annoying to ensure that you have specified the correct value in an array or object. Therefore the normalization will ensure correctness of value. So instead of having to do this:
 
 ```go
 expected := jman.Obj{
@@ -145,12 +162,23 @@ expected.Equal(t, actual, jman.WithMatchers(
 ```
 
 jman provides several matchers that can be used out of the box:
-`NotEmpty` - checks that whatever is present is not a zero value or nil.
-`IsUUID` - checks that something matches a uuid regex
-`EqaulMatcher` - checks if a value deep equals what is received. useful for tests with dynamic values that need to be matched exactly
-`Custom` - for passing in a custom matcher
+- `NotEmpty(placeholder string)` - checks that whatever is present is not a zero value or nil
+- `IsUUID(placeholder string)` - checks that something matches a uuid regex
+- `EqualMatcher[T any](placeholder string, expected T)` - checks if a value deep equals what is received, useful for tests with dynamic values that need to be matched exactly
+- `Custom(placeholder string, matcherFunc MatcherFunc)` - for passing in a custom matcher function
 
 the placeholder tells what value in the expected will be checked with the corresponding function from the matcher with the value from the actual.
+
+You can also set default matchers that apply to all comparisons using `WithDefaultMatchers()`:
+
+```go
+defaultMatchers := jman.Matchers{
+    jman.NotEmpty("$ANY"),
+    jman.IsUUID("$UUID"),
+}
+
+expected.Equal(t, actual, jman.WithDefaultMatchers(defaultMatchers))
+```
 
 In addition to the matchers, there is also an option to ignore array ordering:
 ```go 
@@ -198,16 +226,22 @@ retrieves a value at the specified path. It calls `t.Fatalf()` if the path is in
 ```
 
 There are also typed getter methods that call `t.Fatalf()` if the type conversion fails:
-`GetString(t T, path string) string`
-`GetNumber(t T, path string) float64`
-`GetBool(t T, path string) bool`
-`GetObject(t T, path string) Obj`
-`GetArray(t T, path string) Arr`
+- `GetString(t T, path string) string`
+- `GetNumber(t T, path string) float64`
+- `GetBool(t T, path string) bool`
+- `GetObject(t T, path string) Obj`
+- `GetArray(t T, path string) Arr`
 
+#### JSON Marshaling Methods
 
-`String(t T) string`
-`Bytes(t T) []byte` 
-`MustString() string`
-`MustBytes() []byte`
+Both `jman.Obj` and `jman.Arr` can marshal JSON into outputs of either a string or byte slice:
 
-both `jman.Obj` and `jman.Arr` can marshal json into outputs of either a string or byte slice. The `String()` and `Bytes()` methods call `t.Fatalf()` if marshaling fails, while the `MustString()` and `MustBytes()` methods panic instead. These are convenience helpers for testing - again, not for production code.
+**Methods that use testing.T:**
+- `String(t T) string` - calls `t.Fatalf()` if marshaling fails
+- `Bytes(t T) []byte` - calls `t.Fatalf()` if marshaling fails  
+
+**Methods that panic:**
+- `MustString() string` - panics if marshaling fails
+- `MustBytes() []byte` - panics if marshaling fails
+
+These are convenience helpers for testing - again, not for production code.
