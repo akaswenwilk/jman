@@ -29,7 +29,7 @@ Minimal, fast, idiomatic.
 
 ## Context
 
-This package is intended for testing.  There are many bits of syntactical sugar that make working with it more flexible and simpler to write.  It gets around much of the type safety and can panic with certain methods.  Therefore it is really not intended for production where these safety measures help ensure correct code!  
+This package is intended for testing.  There are many bits of syntactical sugar that make working with it more flexible and simpler to write.  It gets around much of the type safety and uses `testing.T.Fatalf()` to fail tests when operations don't succeed, rather than returning errors to handle.  Therefore it is really not intended for production where these safety measures help ensure correct code!  
 
 However in testing, these safety measures can be hindrances.  The Design Philosophy of Jman is:
 
@@ -50,15 +50,11 @@ func TestExample(t *testing.T) {
     }
     actual := `{"bas":123, "foo":"bar", "id": "d47422ff-683a-4077-b3eb-e06a99bc9b55"}`
 
-    err := expected.Equal(actual, jman.WithMatcher(
+    expected.Equal(t, actual, jman.WithMatcher(
             jman.NotEmpty("ANY$"),
             jman.IsUUID("$UUID"),
         ),
     )
-
-    if err != nil {
-        t.FatalF("expected no comparison error, got %w", err)
-    }
 }
 ```
 
@@ -85,7 +81,7 @@ expected := jman.Obj{
 }
 actual := `{"numberKey":123}`
 
-err := expected.Equal(actual)
+expected.Equal(t, actual)
 ```
 
 and the conversion will happen via normalization.
@@ -94,7 +90,7 @@ and the conversion will happen via normalization.
 
 the main method for comparison is the `Equal` method present on both `jman.Arr` and `jman.Obj`
 
-`Equal` can compare against other objects/arrays, but also against strings or byte slices.  No need to add any extra steps to ensure that the expected and actual are both in the same format just to compare the values!
+`Equal` takes a `testing.T` as the first parameter and calls `t.Fatalf()` if the comparison fails, making it ideal for use in tests. It can compare against other objects/arrays, but also against strings or byte slices. No need to add any extra steps to ensure that the expected and actual are both in the same format just to compare the values!
 
 
 #### Error Messages.
@@ -123,16 +119,15 @@ func TestObj_Equal_Unequal_ManyObjectErrors(t *testing.T) {
 		},
 	}
 
-	err := expected.Equal(actual)
-	require.Error(t, err)
-	assert.Equal(t, `expected not equal to actual:
+	// This will call t.Fatalf() with the error message:
+	// expected.Equal(t, actual)
+	// The error message would be:
 $.key1 not found in actual
 $.key3 unexpected key
 $.key2.nestedKey4 not found in actual
 $.key2.nestedKey3 unexpected key
 $.key2.nestedKey1 expected "nestedValue1" - actual "nestedValue2"
 $.key2.nestedKey2 expected 42 - actual "notANumber"
-`, err.Error())
 }
 ```
 
@@ -144,7 +139,7 @@ expected := jman.Obj{
     "id": "$SOME_ID"
 }
 actual := `{"id":"21493933-3338-450c-8113-62a35d2c1820"}`
-err := expected.Equal(actual, jman.WithMatchers(
+expected.Equal(t, actual, jman.WithMatchers(
     jman.NotEmpty("$SOME_ID")
 ))
 ```
@@ -166,9 +161,9 @@ In addition to the matchers, there is also an option to ignore array ordering:
 		"items": jman.Arr{"item3", "item1", "item2"},
 	}
 
-	assert.NoError(t, expected.Equal(actual,
+	expected.Equal(t, actual,
 		jman.WithIgnoreArrayOrder("$.items"),
-	))
+	)
 
 ```
 there can be multiple paths passed in if multiple arrays should ignore order. Each path must follow the syntax of leading with `$`.
@@ -177,41 +172,42 @@ there can be multiple paths passed in if multiple arrays should ignore order. Ea
 
 Additionally, both `jman.Arr` and `jman.Obj` have a set of helper methods to make json manipulation easier:
 
-`Set(path string, value any) error`
-sets the value in whatever path is given. The path is separated by dots and must begin with `$`.  For example:
+`Set(t T, path string, value any)`
+sets the value in whatever path is given. The path is separated by dots and must begin with `$`. It calls `t.Fatalf()` if the operation fails. For example:
 ```go 
 	data := jman.Obj{
 		"key1": jman.Obj{
 			"nestedKey1": jman.Arr{"item1", jman.Obj{"deepKey": "deepValue"}},
 		},
 	}
-	err := data.Set("$.key1.nestedKey1.1.deepKey", "newDeepValue")
+	data.Set(t, "$.key1.nestedKey1.1.deepKey", "newDeepValue")
 ```
 if a key is not present in the path, it will create a new key, otherwise it will overwrite the existing value of that key.
 
 in arrays, it will replace the item at index, but it will not add new items.
 
-`Get(path string) Result`
-This will return a `Result` of the path.  Result will then either have the error or the data:
+`Get(t T, path string) any`
+retrieves a value at the specified path. It calls `t.Fatalf()` if the path is invalid or the value cannot be retrieved:
 ```go 
 	data := jman.Obj{
 		"key1": jman.Obj{
 			"nestedKey1": jman.Arr{"item1", jman.Obj{"deepKey": "deepValue"}},
 		},
 	}
-	value, err := data.Get("$.key1.nestedKey1.1.deepKey").String()
+	value := data.Get(t, "$.key1.nestedKey1.1.deepKey")
 ```
 
-result can return its data using one of the following methods:
-`Data` (`any`)
-`String`
-`Number` (`float64`)
-`Bool`
-`Obj` (`jman.Obj`)
-`Arr` (`jman.Arr`)
+There are also typed getter methods that call `t.Fatalf()` if the type conversion fails:
+`GetString(t T, path string) string`
+`GetNumber(t T, path string) float64`
+`GetBool(t T, path string) bool`
+`GetObject(t T, path string) Obj`
+`GetArray(t T, path string) Arr`
 
 
+`String(t T) string`
+`Bytes(t T) []byte` 
 `MustString() string`
 `MustBytes() []byte`
 
-both `jman.Obj` and `jman.Arr` can marshal json into outputs of either a string or byte slice.  These are convenience helpers that will either successfully return the marshalled value or panic.  Again, not for production code.
+both `jman.Obj` and `jman.Arr` can marshal json into outputs of either a string or byte slice. The `String()` and `Bytes()` methods call `t.Fatalf()` if marshaling fails, while the `MustString()` and `MustBytes()` methods panic instead. These are convenience helpers for testing - again, not for production code.
