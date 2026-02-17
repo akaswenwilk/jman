@@ -1,6 +1,7 @@
 package jman
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,8 +9,8 @@ import (
 )
 
 var (
-	ErrJSONParse = errors.New("error parsing JSON data")
-	ErrNormalize = errors.New("error normalizing JSON data")
+	ErrJSONParse       = errors.New("error parsing JSON data")
+	ErrNormalize       = errors.New("error normalizing JSON data")
 	ErrUnsupportedType = errors.New("unsupported type for JSON data, use either string or []byte")
 )
 
@@ -18,6 +19,28 @@ var (
 // equality between two JSON objects, allowing for custom options via OptsFunc.
 type JSONEqual interface {
 	Equal(t T, other any, optFuncs ...optsFunc)
+}
+
+// Equal compares two JSON values where each value can be Obj, Arr, JSON string/bytes,
+// or any value that can be marshaled into a JSON object/array.
+func Equal(t T, expected, actual any, optFuncs ...optsFunc) {
+	expectedVal, expectedIsObj := normalizeComparable(t, expected)
+	actualVal, actualIsObj := normalizeComparable(t, actual)
+
+	if expectedIsObj != actualIsObj {
+		if expectedIsObj {
+			t.Fatalf("can't compare json object with array")
+			return
+		}
+		t.Fatalf("can't compare array with json object")
+		return
+	}
+
+	if expectedIsObj {
+		expectedVal.(Obj).Equal(t, actualVal, optFuncs...)
+		return
+	}
+	expectedVal.(Arr).Equal(t, actualVal, optFuncs...)
 }
 
 // New creates a new instance of type T from the provided data.
@@ -47,6 +70,51 @@ func New[E JSONEqual](t T, data any) E {
 	}
 
 	return result
+}
+
+func normalizeComparable(t T, data any) (any, bool) {
+	switch d := data.(type) {
+	case Obj:
+		obj, err := normalize(d)
+		if err != nil {
+			t.Fatalf(fmt.Sprintf("%v %T: %v", ErrNormalize, d, err))
+		}
+		return obj, true
+	case Arr:
+		arr, err := normalize(d)
+		if err != nil {
+			t.Fatalf(fmt.Sprintf("%v %T: %v", ErrNormalize, d, err))
+		}
+		return arr, false
+	case string:
+		return normalizeComparableJSONText(t, []byte(d), d)
+	case []byte:
+		return normalizeComparableJSONText(t, d, d)
+	default:
+		marshaled, err := json.Marshal(d)
+		if err != nil {
+			t.Fatalf(fmt.Sprintf("%T %s", data, ErrUnsupportedType))
+		}
+		return normalizeComparableJSONText(t, marshaled, d)
+	}
+}
+
+func normalizeComparableJSONText(t T, data []byte, original any) (any, bool) {
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 {
+		t.Fatalf(fmt.Sprintf("%v %s: empty json", ErrJSONParse, string(data)))
+	}
+
+	switch trimmed[0] {
+	case '{':
+		return New[Obj](t, trimmed), true
+	case '[':
+		return New[Arr](t, trimmed), false
+	default:
+		t.Fatalf(fmt.Sprintf("%T %s", original, ErrUnsupportedType))
+	}
+
+	return nil, false
 }
 
 func normalize[T JSONEqual](data T) (T, error) {
