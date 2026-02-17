@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/akaswenwilk/jman"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEqual_ObjExpected_ActualString(t *testing.T) {
@@ -50,34 +49,25 @@ func TestEqual_InstantiableArrInputs_Slices(t *testing.T) {
 }
 
 func TestEqual_UnequalKinds_ExpectedObjActualArr(t *testing.T) {
-	mt := newMockT("can't compare json object with array")
-	defer mt.AssertExpectations(t)
-
 	expected := jman.Obj{"foo": "bar"}
 	actual := jman.Arr{"foo", "bar"}
 
-	assert.Panics(t, func() {
+	assertFatalf(t, "can't compare json object with array", func(mt jman.T) {
 		jman.Equal(mt, expected, actual)
 	})
 }
 
 func TestEqual_UnequalKinds_ExpectedArrActualObj(t *testing.T) {
-	mt := newMockT("can't compare array with json object")
-	defer mt.AssertExpectations(t)
-
 	expected := jman.Arr{"foo", "bar"}
 	actual := jman.Obj{"foo": "bar"}
 
-	assert.Panics(t, func() {
+	assertFatalf(t, "can't compare array with json object", func(mt jman.T) {
 		jman.Equal(mt, expected, actual)
 	})
 }
 
 func TestEqual_UnsupportedType(t *testing.T) {
-	mt := newMockT("int unsupported type for JSON data, use either string or []byte")
-	defer mt.AssertExpectations(t)
-
-	assert.Panics(t, func() {
+	assertFatalf(t, "int unsupported type for JSON data, use either string or []byte", func(mt jman.T) {
 		jman.Equal(mt, 123, jman.Obj{"foo": "bar"})
 	})
 }

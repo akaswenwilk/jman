@@ -37,10 +37,9 @@ func TestNewFromFile_Arr(t *testing.T) {
 
 func TestNewFromFile_FileNotFound(t *testing.T) {
 	missingPath := filepath.Join(t.TempDir(), "missing.json")
-	mt := newMockT(fmt.Sprintf("error reading JSON file %s:", missingPath))
-	defer mt.AssertExpectations(t)
-
-	assert.Panics(t, func() { jman.NewFromFile[jman.Obj](mt, missingPath) })
+	assertFatalf(t, fmt.Sprintf("error reading JSON file %s:", missingPath), func(mt jman.T) {
+		jman.NewFromFile[jman.Obj](mt, missingPath)
+	})
 }
 
 func TestNewFromFile_InvalidJSON(t *testing.T) {
@@ -48,8 +47,7 @@ func TestNewFromFile_InvalidJSON(t *testing.T) {
 	err := os.WriteFile(path, []byte(`{"a":`), 0o600)
 	assert.NoError(t, err)
 
-	mt := newMockT(`error parsing JSON data {"a"::`)
-	defer mt.AssertExpectations(t)
-
-	assert.Panics(t, func() { jman.NewFromFile[jman.Obj](mt, path) })
+	assertFatalf(t, `error parsing JSON data {"a"::`, func(mt jman.T) {
+		jman.NewFromFile[jman.Obj](mt, path)
+	})
 }
