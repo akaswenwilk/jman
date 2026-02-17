@@ -1,0 +1,4 @@
+interface:
+  display_name: "GH Go Release Publisher"
+  short_description: "Inspect, diff, version, and publish GitHub releases"
+  default_prompt: "Use $gh-release-publish-go to inspect the latest release, compare it to master, and publish the next Go package release with notes."
