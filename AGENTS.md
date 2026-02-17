@@ -23,6 +23,7 @@ When adding features, keep related logic in existing root files (or add another 
 - Keep package name as `jman`; exported APIs use `CamelCase`, unexported helpers use `camelCase`.
 - Preserve existing file naming style: short, responsibility-based names (`options.go`, `matchers.go`).
 - Test names follow `Test<Type>_<Method>_<Scenario>` (example: `TestObj_Equal_Unequal_MissingKeyFromActual`).
+- Prefer public interfaces that accept `jman.T` and fail via `t.Fatalf(...)` on invalid usage/inputs, instead of returning `error` values (unless explicitly requested otherwise).
 
 ## Testing Guidelines
 - Add or update tests for every behavioral change.
