@@ -39,7 +39,7 @@ When adding features, keep related logic in existing root files (or add another 
 - Ensure CI passes (`go test ./...` and lint checks) before requesting review.
 
 ## Required Agent Git Workflow
-- Before making any file changes, create and switch to a new branch from the current base branch.
+- Before making any file changes, create a new branch based on the latest changes from master. ensure that you have pulled any changes from remote in case local is not up to date.
 - Use descriptive branch names with a clear purpose (for example, `fix/obj-equal-missing-key` or `feat/setter-path-validation`).
 - Make one or more well-scoped commits with short, imperative, descriptive messages.
 - Push the branch to `origin` after committing.
