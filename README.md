@@ -48,7 +48,7 @@ func TestExample(t *testing.T) {
         "baz": "$ANY",
         "id": "$UUID",
     }
-    actual := `{"bas":123, "foo":"bar", "id": "d47422ff-683a-4077-b3eb-e06a99bc9b55"}`
+    actual := `{"baz":"value", "foo":"bar", "id": "d47422ff-683a-4077-b3eb-e06a99bc9b55"}`
 
     expected.Equal(t, actual, jman.WithMatchers(
             jman.NotEmpty("$ANY"),
@@ -63,7 +63,7 @@ func TestExample(t *testing.T) {
 
 ### Basic Models
 
-jman is built around two structs: `jman.Obj` and `jman.Arr`, corresponding to `map[string]any` and `[]any`. They then have helper methods to manipulate and compare with each other. 
+jman is built around two types: `jman.Obj` and `jman.Arr`, corresponding to `map[string]any` and `[]any`. They have helper methods to manipulate and compare with each other.
 
 You can create instances directly or use the `New` function to create them from JSON strings, byte slices, or existing instances:
 
@@ -88,7 +88,7 @@ expected := jman.Obj{
 }
 actual := `{"numberKey":123}`
 
-err := expected.Equal(actual)
+expected.Equal(t, actual)
 ```
 
 you can simply write:
@@ -169,7 +169,7 @@ jman provides several matchers that can be used out of the box:
 
 the placeholder tells what value in the expected will be checked with the corresponding function from the matcher with the value from the actual.
 
-You can also set default matchers that apply to all comparisons using `WithDefaultMatchers()`:
+You can set a matcher set for a comparison with `WithDefaultMatchers()`:
 
 ```go
 defaultMatchers := jman.Matchers{
@@ -179,6 +179,8 @@ defaultMatchers := jman.Matchers{
 
 expected.Equal(t, actual, jman.WithDefaultMatchers(defaultMatchers))
 ```
+
+`WithDefaultMatchers` sets the full matcher list for that comparison. `WithMatchers` appends individual matchers.
 
 In addition to the matchers, there is also an option to ignore array ordering:
 ```go 
@@ -234,14 +236,14 @@ There are also typed getter methods that call `t.Fatalf()` if the type conversio
 
 #### JSON Marshaling Methods
 
-Both `jman.Obj` and `jman.Arr` can marshal JSON into outputs of either a string or byte slice:
-
-**Methods that use testing.T:**
+`jman.Obj` marshal helpers:
 - `String(t T) string` - calls `t.Fatalf()` if marshaling fails
-- `Bytes(t T) []byte` - calls `t.Fatalf()` if marshaling fails  
-
-**Methods that panic:**
+- `Bytes(t T) []byte` - calls `t.Fatalf()` if marshaling fails
 - `MustString() string` - panics if marshaling fails
 - `MustBytes() []byte` - panics if marshaling fails
+
+`jman.Arr` marshal helpers:
+- `String(t T) string` - calls `t.Fatalf()` if marshaling fails
+- `MustBytes(t T) []byte` - calls `t.Fatalf()` if marshaling fails
 
 These are convenience helpers for testing - again, not for production code.
