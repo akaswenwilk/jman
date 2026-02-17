@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 )
 
 var (
-	ErrJSONParse = errors.New("error parsing JSON data")
-	ErrNormalize = errors.New("error normalizing JSON data")
+	ErrJSONRead        = errors.New("error reading JSON file")
+	ErrJSONParse       = errors.New("error parsing JSON data")
+	ErrNormalize       = errors.New("error normalizing JSON data")
 	ErrUnsupportedType = errors.New("unsupported type for JSON data, use either string or []byte")
 )
 
@@ -22,7 +24,7 @@ type JSONEqual interface {
 
 // New creates a new instance of type T from the provided data.
 // The data can be a JSON string, a byte slice, or an instance of type T.
-// It returns an error if the data cannot be parsed or normalized into type T.
+// It fails the test via t.Fatalf if data cannot be parsed or normalized into type T.
 func New[E JSONEqual](t T, data any) E {
 	var result E
 
@@ -47,6 +49,16 @@ func New[E JSONEqual](t T, data any) E {
 	}
 
 	return result
+}
+
+// NewFromFile creates a new instance of type E from a JSON file path.
+// It fails the test via t.Fatalf if the file can't be read or JSON can't be parsed.
+func NewFromFile[E JSONEqual](t T, path string) E {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("%v %s: %v", ErrJSONRead, path, err))
+	}
+	return New[E](t, data)
 }
 
 func normalize[T JSONEqual](data T) (T, error) {
