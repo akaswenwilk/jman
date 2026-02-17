@@ -5,7 +5,7 @@ This repository is a single-package Go module: `github.com/akaswenwilk/jman`.
 
 - Core library code is at the repo root (`arr.go`, `obj.go`, `equal.go`, `getter.go`, `setter.go`, etc.).
 - Package docs live in `doc.go`; user-facing usage examples are in `README.md`.
-- Tests are colocated with source as `*_test.go` (for example, `obj_test.go`, `arr_test.go`).
+- Tests are colocated with source as `*_test.go` (for example, `obj_equal_test.go`, `arr_equal_test.go`).
 - CI configuration is in `.github/workflows/pull_request.yaml`.
 
 When adding features, keep related logic in existing root files (or add another focused `*.go` file in root) and add matching tests nearby.
@@ -30,6 +30,9 @@ When adding features, keep related logic in existing root files (or add another 
 - Prefer table-driven tests for multiple variants when it improves readability.
 - Keep assertions explicit about JSON paths and mismatch behavior.
 - Use targeted runs during development, then finish with `go test ./...`.
+- Split tests by behavior area instead of collecting everything in one file (for example: `obj_new_test.go`, `obj_equal_test.go`, `obj_get_test.go`, `obj_set_test.go`).
+- Keep shared test helpers in `test_helpers_test.go` and reuse them to avoid repeated panic/assertion boilerplate.
+- Prefer succinct subtest names in table-driven suites (for example: `String`, `NestedKey`, `ComplexPath`) so failures are easy to scan.
 
 ## Commit & Pull Request Guidelines
 - Current history uses short, imperative commit messages (`add ...`, `fix ...`, `update ...`); keep the same style.
