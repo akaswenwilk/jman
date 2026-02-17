@@ -37,3 +37,11 @@ When adding features, keep related logic in existing root files (or add another 
 - PRs should link issue/context when applicable.
 - PRs should include test evidence (command run and result).
 - Ensure CI passes (`go test ./...` and lint checks) before requesting review.
+
+## Required Agent Git Workflow
+- Before making any file changes, create and switch to a new branch from the current base branch.
+- Use descriptive branch names with a clear purpose (for example, `fix/obj-equal-missing-key` or `feat/setter-path-validation`).
+- Make one or more well-scoped commits with short, imperative, descriptive messages.
+- Push the branch to `origin` after committing.
+- Use GitHub CLI to open a pull request from that branch (`gh pr create`), with a clear title and summary.
+- Do not commit directly to `main` for agent-driven changes.
