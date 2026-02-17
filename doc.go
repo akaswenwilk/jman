@@ -27,10 +27,22 @@
 //   user.Set(t, "$.settings.theme", "dark")
 //   tags.Set(t, "$.1", "unit")
 //
-// There are diffferent getters for each type expected to be returned
+// There are different getters for each expected return type.
 //
 // Setter can set any type as a value, however the value will be normalized into either:
 // bool, string, float64, Obj, or Arr.
+//
+// # JSON Marshaling Helpers
+//
+// Obj:
+//   • String(t) string
+//   • Bytes(t) []byte
+//   • MustString() string
+//   • MustBytes() []byte
+//
+// Arr:
+//   • String(t) string
+//   • MustBytes(t) []byte
 //
 //
 // # Deep Equality
@@ -85,6 +97,7 @@
 //
 // # Options
 //
+//   • WithMatchers(matchers...)    — append matchers for the comparison.
 //   • WithIgnoreArrayOrder(paths...) — compare arrays as sets for given paths.
 //   • WithDefaultMatchers(ms)       — register Matchers once per comparison.
 //
